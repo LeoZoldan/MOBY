@@ -1,98 +1,156 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import {
+  StyleSheet, Text, View, TouchableOpacity, Image, StatusBar,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+export default function WelcomeScreen() {
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <View style={styles.container}>
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+        <View style={styles.diagonalBg} />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        <SafeAreaView style={styles.safe}>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+          <View style={styles.top}>
+            <View style={styles.logoBox}>
+              <Image
+                source={require('../../assets/images/logo.png')}
+                style={styles.logoImg}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={styles.titleRow}>
+              <Text style={styles.appName}>MOBY</Text>
+              <Text style={styles.tagline}>Entregas sob demanda, agora.</Text>
+            </View>
+          </View>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+          <View style={styles.bottom}>
+
+            <TouchableOpacity style={styles.cardCliente} activeOpacity={0.85} onPress={() => router.push('/cadastro-cliente')}>
+              <View style={styles.iconCliente}>
+                <Ionicons name="person-outline" size={22} color="#fff" />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.titleCliente}>Sou Cliente</Text>
+                <Text style={styles.subCliente}>Solicitar entrega agora</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cardMotoboy} activeOpacity={0.85} onPress={() => router.push('/cadastro-motoboy')}>
+              <View style={styles.iconMotoboy}>
+                <MaterialCommunityIcons name="moped" size={24} color="#333" />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.titleMotoboy}>Sou Motoboy</Text>
+                <Text style={styles.subMotoboy}>Receber corridas agora</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#CCC" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.loginBtn} activeOpacity={0.7} onPress={() => router.push('/login')}>
+              <Text style={styles.loginText}>
+                Já tem conta?{'  '}
+                <Text style={styles.loginLink}>Entrar</Text>
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+
+        </SafeAreaView>
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  container: { flex: 1, backgroundColor: '#fff' },
+  diagonalBg: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: '52%',
+    backgroundColor: '#0D0D0D',
+    transform: [{ skewY: '-4deg' }, { translateY: -80 }],
+  },
+  safe: { flex: 1 },
+  top: {
+    paddingTop: 40,
+    paddingHorizontal: 26,
+    paddingBottom: 16,
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    gap: 18,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
+  },
+  logoImg: {
+    width: 68,
+    height: 68,
+  },
+  titleRow: { flex: 1 },
+  appName: {
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: 5,
+    color: '#fff',
+  },
+  tagline: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.25)',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  bottom: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    paddingHorizontal: 20,
+    paddingTop: 80,
+    paddingBottom: 40,
+    justifyContent: 'flex-end',
+    gap: 11,
   },
-  title: {
-    textAlign: 'center',
+  cardCliente: {
+    backgroundColor: '#111',
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
-  code: {
-    textTransform: 'uppercase',
+  iconCliente: {
+    width: 44, height: 44, borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  titleCliente: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  subCliente: { fontSize: 10, color: 'rgba(255,255,255,0.35)' },
+  cardMotoboy: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
+  iconMotoboy: {
+    width: 44, height: 44, borderRadius: 13,
+    backgroundColor: '#ECECEC',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  titleMotoboy: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 2 },
+  subMotoboy: { fontSize: 10, color: '#BBB' },
+  cardText: { flex: 1 },
+  loginBtn: { marginTop: 4 },
+  loginText: { fontSize: 11, color: '#CCC', textAlign: 'center' },
+  loginLink: { color: '#111', fontWeight: '600' },
 });
