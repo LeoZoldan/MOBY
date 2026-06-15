@@ -51,6 +51,59 @@ export default function CadastroClienteScreen() {
     else router.back();
   };
 
+  const formatCpf = (text: string) => {
+    const cpfNumeros = text.replace(/\D/g, '');
+
+    return cpfNumeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  const formatNascimento = (text: string) => {
+    const numeros = text.replace(/\D/g, '');
+
+    return numeros
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .slice(0, 10);
+  };
+
+  const formatTelefone = (text: string) => {
+    const numeros = text.replace(/\D/g, '');
+
+    return numeros
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .slice(0, 15);
+  };
+
+  const formatCNPJ = (text: string) => {
+    const cnpjNumeros = text.replace(/\D/g, '');
+
+    return cnpjNumeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})/, '$1-$2');
+  };
+
+  const formatCEP = (text: string) => {
+    const cepNumeros = text.replace(/\D/g, '');
+
+    return cepNumeros
+      .replace(/(\d{5})(\d)/, '$1-$2');
+  };
+
+  const formatNumeroEndereco = (text: string) => {
+    return text.replace(/\D/g, '');
+  };
+
+  const formatEstado = (text: string) => {
+      return text.toUpperCase().replace(/[^a-zA-ZÀ-ÿ\s]/g, '') ;
+    }
+
+
   const titulos = ['Tipo de conta', 'Dados pessoais', 'Endereço'];
 
   return (
@@ -134,11 +187,11 @@ export default function CadastroClienteScreen() {
                     </View>
                     <View style={styles.field}>
                       <Text style={styles.label}>CPF</Text>
-                      <TextInput style={styles.input} placeholder="000.000.000-00" placeholderTextColor="#CCC" value={cpf} onChangeText={setCpf} keyboardType="numeric" maxLength={14} />
+                      <TextInput style={styles.input} placeholder="000.000.000-00" placeholderTextColor="#CCC" value={cpf} onChangeText={(text) => setCpf(formatCpf(text))} keyboardType="numeric" maxLength={14} />
                     </View>
                     <View style={styles.field}>
                       <Text style={styles.label}>Data de nascimento</Text>
-                      <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#CCC" value={nascimento} onChangeText={setNascimento} keyboardType="numeric" maxLength={10} />
+                      <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#CCC" value={nascimento} onChangeText={(text) => setNascimento(formatNascimento(text))} keyboardType="numeric" maxLength={10} />
                     </View>
                   </>
                 ) : (
@@ -149,7 +202,7 @@ export default function CadastroClienteScreen() {
                     </View>
                     <View style={styles.field}>
                       <Text style={styles.label}>CNPJ</Text>
-                      <TextInput style={styles.input} placeholder="00.000.000/0000-00" placeholderTextColor="#CCC" value={cnpj} onChangeText={setCnpj} keyboardType="numeric" maxLength={18} />
+                      <TextInput style={styles.input} placeholder="00.000.000/0000-00" placeholderTextColor="#CCC" value={cnpj} onChangeText={(text) => setCnpj(formatCNPJ(text))} keyboardType="numeric" maxLength={18} />
                     </View>
                     <View style={styles.field}>
                       <Text style={styles.label}>Nome do responsável</Text>
@@ -163,7 +216,7 @@ export default function CadastroClienteScreen() {
                 </View>
                 <View style={styles.field}>
                   <Text style={styles.label}>Telefone</Text>
-                  <TextInput style={styles.input} placeholder="(54) 99999-9999" placeholderTextColor="#CCC" value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" maxLength={15} />
+                  <TextInput style={styles.input} placeholder="(54) 99999-9999" placeholderTextColor="#CCC" value={telefone} onChangeText={(text) => setTelefone(formatTelefone(text))} keyboardType="phone-pad" maxLength={15} />
                 </View>
                 <View style={styles.field}>
                   <Text style={styles.label}>Senha</Text>
@@ -182,7 +235,7 @@ export default function CadastroClienteScreen() {
               <View style={styles.fields}>
                 <View style={styles.field}>
                   <Text style={styles.label}>CEP</Text>
-                  <TextInput style={styles.input} placeholder="99999-000" placeholderTextColor="#CCC" value={cep} onChangeText={setCep} keyboardType="numeric" maxLength={9} />
+                  <TextInput style={styles.input} placeholder="99999-000" placeholderTextColor="#CCC" value={cep} onChangeText={(text) => setCep(formatCEP(text))} keyboardType="numeric" maxLength={9} />
                 </View>
                 <View style={styles.field}>
                   <Text style={styles.label}>Rua</Text>
@@ -191,7 +244,7 @@ export default function CadastroClienteScreen() {
                 <View style={styles.rowFields}>
                   <View style={[styles.field, { flex: 1 }]}>
                     <Text style={styles.label}>Número</Text>
-                    <TextInput style={styles.input} placeholder="123" placeholderTextColor="#CCC" value={numero} onChangeText={setNumero} keyboardType="numeric" />
+                    <TextInput style={styles.input} placeholder="123" placeholderTextColor="#CCC" value={numero} onChangeText={(text) => setNumero(formatNumeroEndereco(text))} keyboardType="numeric" />
                   </View>
                   <View style={[styles.field, { flex: 1.5 }]}>
                     <Text style={styles.label}>Complemento</Text>
@@ -209,7 +262,7 @@ export default function CadastroClienteScreen() {
                   </View>
                   <View style={[styles.field, { flex: 1 }]}>
                     <Text style={styles.label}>Estado</Text>
-                    <TextInput style={styles.input} placeholder="RS" placeholderTextColor="#CCC" value={estado} onChangeText={setEstado} autoCapitalize="characters" maxLength={2} />
+                    <TextInput style={styles.input} placeholder="RS" placeholderTextColor="#CCC" value={estado} onChangeText={(text) => setEstado(formatEstado(text))} autoCapitalize="characters" maxLength={2} />
                   </View>
                 </View>
               </View>

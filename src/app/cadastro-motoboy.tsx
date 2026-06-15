@@ -51,6 +51,51 @@ export default function CadastroMotoboyScreen() {
     else router.back();
   };
 
+  const formatCpf = (text: string) => {
+    const cpfNumeros = text.replace(/\D/g, '');
+
+    return cpfNumeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    };
+
+  const formatNascimento = (text: string) => {
+    const numeros = text.replace(/\D/g, '');
+
+    return numeros
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .slice(0, 10);
+    };
+
+  const formatTelefone = (text: string) => {
+    const numeros = text.replace(/\D/g, '');
+
+    return numeros
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .slice(0, 15);
+  };
+
+  const formatCNPJ = (text: string) => {
+    const cnpjNumeros = text.replace(/\D/g, '');
+
+    return cnpjNumeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})/, '$1-$2');
+  };
+
+  const formatAno = (text: string) => {
+    return text.replace(/\D/g, '');
+};
+
+const formatCor = (text: string) => {
+  return text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+};
+
   const titulos = ['Tipo de conta', 'Dados pessoais', 'Dados do veículo', 'Documentos', 'Dados bancários'];
 
   return (
@@ -128,18 +173,18 @@ export default function CadastroMotoboyScreen() {
                 {tipo === 'fisica' ? (
                   <>
                     <View style={styles.field}><Text style={styles.label}>Nome completo</Text><TextInput style={styles.input} placeholder="João da Silva" placeholderTextColor="#CCC" value={nome} onChangeText={setNome} autoCapitalize="words" /></View>
-                    <View style={styles.field}><Text style={styles.label}>CPF</Text><TextInput style={styles.input} placeholder="000.000.000-00" placeholderTextColor="#CCC" value={cpf} onChangeText={setCpf} keyboardType="numeric" maxLength={14} /></View>
-                    <View style={styles.field}><Text style={styles.label}>Data de nascimento</Text><TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#CCC" value={nascimento} onChangeText={setNascimento} keyboardType="numeric" maxLength={10} /></View>
+                    <View style={styles.field}><Text style={styles.label}>CPF</Text><TextInput style={styles.input} placeholder="000.000.000-00" placeholderTextColor="#CCC" value={cpf} onChangeText={(text) => setCpf(formatCpf(text))} keyboardType="numeric" maxLength={14} /></View>
+                    <View style={styles.field}><Text style={styles.label}>Data de nascimento</Text><TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#CCC" value={nascimento} onChangeText={(text) => setNascimento(formatNascimento(text))} keyboardType="numeric" maxLength={10} /></View>
                   </>
                 ) : (
                   <>
                     <View style={styles.field}><Text style={styles.label}>Razão social</Text><TextInput style={styles.input} placeholder="MEI Transportes Ltda." placeholderTextColor="#CCC" value={razaoSocial} onChangeText={setRazaoSocial} autoCapitalize="words" /></View>
-                    <View style={styles.field}><Text style={styles.label}>CNPJ</Text><TextInput style={styles.input} placeholder="00.000.000/0000-00" placeholderTextColor="#CCC" value={cnpj} onChangeText={setCnpj} keyboardType="numeric" maxLength={18} /></View>
+                    <View style={styles.field}><Text style={styles.label}>CNPJ</Text><TextInput style={styles.input} placeholder="00.000.000/0000-00" placeholderTextColor="#CCC" value={cnpj} onChangeText={(text) => setCnpj(formatCNPJ(text))} keyboardType="numeric" maxLength={18} /></View>
                     <View style={styles.field}><Text style={styles.label}>Nome do responsável</Text><TextInput style={styles.input} placeholder="Nome completo" placeholderTextColor="#CCC" value={nome} onChangeText={setNome} autoCapitalize="words" /></View>
                   </>
                 )}
                 <View style={styles.field}><Text style={styles.label}>Email</Text><TextInput style={styles.input} placeholder="email@exemplo.com" placeholderTextColor="#CCC" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
-                <View style={styles.field}><Text style={styles.label}>Telefone</Text><TextInput style={styles.input} placeholder="(54) 99999-9999" placeholderTextColor="#CCC" value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" maxLength={15} /></View>
+                <View style={styles.field}><Text style={styles.label}>Telefone</Text><TextInput style={styles.input} placeholder="(54) 99999-9999" placeholderTextColor="#CCC" value={telefone} onChangeText={(text) => setTelefone(formatTelefone(text))} keyboardType="phone-pad" maxLength={15} /></View>
                 <View style={styles.field}>
                   <Text style={styles.label}>Senha</Text>
                   <View style={styles.inputRow}>
@@ -158,8 +203,8 @@ export default function CadastroMotoboyScreen() {
                 <View style={styles.field}><Text style={styles.label}>Placa da moto</Text><TextInput style={styles.input} placeholder="ABC-1234" placeholderTextColor="#CCC" value={placa} onChangeText={setPlaca} autoCapitalize="characters" maxLength={8} /></View>
                 <View style={styles.field}><Text style={styles.label}>Modelo da moto</Text><TextInput style={styles.input} placeholder="Honda CG 160" placeholderTextColor="#CCC" value={modelo} onChangeText={setModelo} autoCapitalize="words" /></View>
                 <View style={styles.row}>
-                  <View style={[styles.field, { flex: 1 }]}><Text style={styles.label}>Ano</Text><TextInput style={styles.input} placeholder="2021" placeholderTextColor="#CCC" value={ano} onChangeText={setAno} keyboardType="numeric" maxLength={4} /></View>
-                  <View style={[styles.field, { flex: 1 }]}><Text style={styles.label}>Cor</Text><TextInput style={styles.input} placeholder="Vermelha" placeholderTextColor="#CCC" value={cor} onChangeText={setCor} autoCapitalize="words" /></View>
+                  <View style={[styles.field, { flex: 1 }]}><Text style={styles.label}>Ano</Text><TextInput style={styles.input} placeholder="2021" placeholderTextColor="#CCC" value={ano} onChangeText={(text) => setAno(formatAno(text))} keyboardType="numeric" maxLength={4} /></View>
+                  <View style={[styles.field, { flex: 1 }]}><Text style={styles.label}>Cor</Text><TextInput style={styles.input} placeholder="Vermelha" placeholderTextColor="#CCC" value={cor} onChangeText={(text) => setCor(formatCor(text))} autoCapitalize="words" /></View>
                 </View>
               </View>
             )}
