@@ -1,23 +1,65 @@
 import {
   StyleSheet, Text, View, TouchableOpacity, StatusBar,
-  ScrollView, TextInput, KeyboardAvoidingView, Platform,
+  ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { getMe } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const BASE_URL = 'http://192.168.5.102:3000';
 
 export default function EditarPerfilMotoboyScreen() {
-  const [nome, setNome] = useState('Carlos Motoboy');
-  const [telefone, setTelefone] = useState('(54) 99999-9999');
-  const [email, setEmail] = useState('carlos@email.com');
-  const [pix, setPix] = useState('000.000.000-00');
+  const [nome, setNome] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [email, setEmail] = useState('');
+  const [pix, setPix] = useState('');
   const [senha, setSenha] = useState('');
   const [verSenha, setVerSenha] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const salvar = () => {
-    // TODO: chamar API
-    router.back();
+  useEffect(() => {
+    getMe().then((data) => {
+      if (data) {
+        setNome(data.nome || '');
+        setTelefone(data.telefone || '');
+        setEmail(data.email || '');
+      }
+    });
+  }, []);
+
+  const salvar = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const body: any = { nome, telefone, email };
+      if (senha) body.senha = senha;
+      if (pix) body.chavePix = pix;
+
+      const res = await fetch(`${BASE_URL}/auth/atualizar`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (data.erro) {
+        Alert.alert('Erro', data.erro);
+        return;
+      }
+
+      Alert.alert('Sucesso', 'Perfil atualizado!');
+      router.back();
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível atualizar o perfil');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,7 +107,7 @@ export default function EditarPerfilMotoboyScreen() {
               <View style={styles.divider} />
               <View style={styles.field}>
                 <Text style={styles.label}>Chave PIX</Text>
-                <TextInput style={styles.input} value={pix} onChangeText={setPix} autoCapitalize="none" placeholderTextColor="#CCC" />
+                <TextInput style={styles.input} value={pix} onChangeText={setPix} autoCapitalize="none" placeholder="CPF, email ou telefone" placeholderTextColor="#CCC" />
               </View>
               <View style={styles.divider} />
               <View style={styles.field}>
@@ -86,7 +128,7 @@ export default function EditarPerfilMotoboyScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.lockedCard} activeOpacity={0.7} onPress={() => {}}>
+            <TouchableOpacity style={styles.lockedCard} activeOpacity={0.7}>
               <View style={styles.lockedIcon}>
                 <Ionicons name="lock-closed-outline" size={16} color="#AAA" />
               </View>
@@ -100,9 +142,14 @@ export default function EditarPerfilMotoboyScreen() {
           </ScrollView>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.btnSalvar} onPress={salvar} activeOpacity={0.85}>
-              <Ionicons name="checkmark-outline" size={18} color="#fff" />
-              <Text style={styles.btnSalvarTxt}>Salvar alterações</Text>
+            <TouchableOpacity style={styles.btnSalvar} onPress={salvar} activeOpacity={0.85} disabled={loading}>
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <>
+                    <Ionicons name="checkmark-outline" size={18} color="#fff" />
+                    <Text style={styles.btnSalvarTxt}>Salvar alterações</Text>
+                  </>
+              }
             </TouchableOpacity>
           </View>
 

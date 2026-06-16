@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { listarDisponiveis, aceitarPedido, getUsuario } from '../services/api';
+import { listarDisponiveis, aceitarPedido, getMe } from '../services/api';
 
 const { height } = Dimensions.get('window');
 
@@ -16,7 +16,7 @@ export default function HomeMotoboyScreen() {
   const [usuario, setUsuario] = useState<any>(null);
 
   useEffect(() => {
-    getUsuario().then(setUsuario);
+    getMe().then(setUsuario);
   }, []);
 
   useEffect(() => {

@@ -2,9 +2,32 @@ import {
   StyleSheet, Text, View, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { getMe, minhasCorridas } from '../services/api';
 
 export default function MbFinalizadaScreen() {
+  const [usuario, setUsuario] = useState<any>(null);
+  const [ultimaCorrida, setUltimaCorrida] = useState<any>(null);
+  const [saldoTotal, setSaldoTotal] = useState(0);
+
+  useEffect(() => {
+    getMe().then(setUsuario);
+    minhasCorridas().then((data) => {
+      if (Array.isArray(data)) {
+        const entregues = data.filter((c: any) => c.status === 'entregue');
+        const total = entregues.reduce((acc: number, c: any) => acc + (c.valor || 0), 0);
+        setSaldoTotal(total);
+        if (entregues.length > 0) {
+          setUltimaCorrida(entregues[0]);
+        }
+      }
+    });
+  }, []);
+
+  const primeiroNome = usuario?.nome?.split(' ')[0] || 'Motoboy';
+  const valorCorrida = ultimaCorrida?.valor || 0;
+
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
@@ -15,7 +38,7 @@ export default function MbFinalizadaScreen() {
             <Ionicons name="checkmark" size={30} color="#3B6D11" />
           </View>
           <Text style={styles.title}>Entrega concluída!</Text>
-          <Text style={styles.sub}>Ótimo trabalho, Carlos!</Text>
+          <Text style={styles.sub}>Ótimo trabalho, {primeiroNome}!</Text>
         </View>
 
         <View style={styles.body}>
@@ -26,33 +49,33 @@ export default function MbFinalizadaScreen() {
             </View>
             <View>
               <Text style={styles.ganhoLabel}>Você ganhou</Text>
-              <Text style={styles.ganhoVal}>R$ 18,50</Text>
+              <Text style={styles.ganhoVal}>R$ {valorCorrida.toFixed(2).replace('.', ',')}</Text>
             </View>
           </View>
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Detalhes da corrida</Text>
             <View style={styles.row}>
-              <Text style={styles.rowLabel}>Corrida</Text>
-              <Text style={styles.rowVal}>R$ 12,00</Text>
+              <Text style={styles.rowLabel}>Serviço</Text>
+              <Text style={styles.rowVal}>{ultimaCorrida?.servico || '-'}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.rowLabel}>Máquina de cartão</Text>
-              <Text style={styles.rowVal}>R$ 6,50</Text>
+              <Text style={styles.rowLabel}>Origem</Text>
+              <Text style={styles.rowVal} numberOfLines={1}>{ultimaCorrida?.origem || '-'}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.rowLabel}>Tempo</Text>
-              <Text style={styles.rowVal}>18 min</Text>
+              <Text style={styles.rowLabel}>Destino</Text>
+              <Text style={styles.rowVal} numberOfLines={1}>{ultimaCorrida?.destino || '-'}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.rowLabel}>Distância</Text>
-              <Text style={styles.rowVal}>2,4 km</Text>
+              <Text style={styles.rowLabel}>Valor</Text>
+              <Text style={styles.rowVal}>R$ {valorCorrida.toFixed(2).replace('.', ',')}</Text>
             </View>
           </View>
 
           <View style={styles.saldoCard}>
             <Text style={styles.saldoLabel}>Saldo disponível</Text>
-            <Text style={styles.saldoVal}>R$ 338,50</Text>
+            <Text style={styles.saldoVal}>R$ {saldoTotal.toFixed(2).replace('.', ',')}</Text>
             <Text style={styles.saldoSub}>Saque via PIX a qualquer momento</Text>
           </View>
 
@@ -76,77 +99,38 @@ export default function MbFinalizadaScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
-    backgroundColor: '#0D0D0D',
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 28,
-    alignItems: 'center',
-    gap: 10,
+    backgroundColor: '#0D0D0D', paddingHorizontal: 20, paddingTop: 40,
+    paddingBottom: 28, alignItems: 'center', gap: 10,
   },
   checkCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 99,
-    backgroundColor: 'rgba(59,109,17,0.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(59,109,17,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 64, height: 64, borderRadius: 99,
+    backgroundColor: 'rgba(59,109,17,0.15)', borderWidth: 1.5,
+    borderColor: 'rgba(59,109,17,0.35)', alignItems: 'center', justifyContent: 'center',
   },
   title: { fontSize: 20, fontWeight: '700', color: '#fff' },
   sub: { fontSize: 12, color: 'rgba(255,255,255,0.35)' },
   body: { flex: 1, padding: 16, gap: 12 },
   ganhoBox: {
-    backgroundColor: '#EAF3DE',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 1,
-    borderColor: '#C0DD97',
+    backgroundColor: '#EAF3DE', borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderWidth: 1, borderColor: '#C0DD97',
   },
-  ganhoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: '#3B6D11',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  ganhoIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: '#3B6D11', alignItems: 'center', justifyContent: 'center' },
   ganhoLabel: { fontSize: 11, color: '#3B6D11', fontWeight: '500' },
   ganhoVal: { fontSize: 24, fontWeight: '800', color: '#3B6D11' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
-    gap: 10,
-  },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#EBEBEB', gap: 10 },
   cardTitle: { fontSize: 10, fontWeight: '600', color: '#999', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowLabel: { fontSize: 12, color: '#999' },
-  rowVal: { fontSize: 12, fontWeight: '600', color: '#111' },
+  rowVal: { fontSize: 12, fontWeight: '600', color: '#111', maxWidth: '60%', textAlign: 'right' },
   saldoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
-    alignItems: 'center',
-    gap: 4,
+    backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: '#EBEBEB', alignItems: 'center', gap: 4,
   },
   saldoLabel: { fontSize: 11, color: '#999' },
   saldoVal: { fontSize: 22, fontWeight: '800', color: '#111' },
   saldoSub: { fontSize: 10, color: '#BBB' },
   footer: { padding: 16, paddingBottom: 32 },
-  btnPrimary: {
-    backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  btnPrimary: { backgroundColor: '#111', borderRadius: 16, padding: 16, alignItems: 'center', justifyContent: 'center' },
   btnPrimaryTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
