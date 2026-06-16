@@ -2,9 +2,67 @@ import {
   StyleSheet, Text, View, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
+import { io as socketIO } from 'socket.io-client';
+import { meusPedidos } from '../services/api';
+
+const BASE_URL = 'http://192.168.5.102:3000';
 
 export default function AguardandoMotoboyScreen() {
+  const socketRef = useRef<any>(null);
+  const [pedidoId, setPedidoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    buscarPedidoAtual();
+  }, []);
+
+  useEffect(() => {
+    if (!pedidoId) return;
+
+    const socket = socketIO(BASE_URL, { transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('pedido:acompanhar', pedidoId);
+    });
+
+    socket.on('pedido:aceito', () => {
+      router.replace('/corrida-andamento' as any);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [pedidoId]);
+
+  // Verifica também via polling a cada 5 segundos
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const data = await meusPedidos();
+        if (Array.isArray(data)) {
+          const ativo = data.find((p: any) => p.status === 'aceito' || p.status === 'coletado');
+          if (ativo) {
+            router.replace('/corrida-andamento' as any);
+          }
+        }
+      } catch (err) {}
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const buscarPedidoAtual = async () => {
+    try {
+      const data = await meusPedidos();
+      if (Array.isArray(data)) {
+        const aguardando = data.find((p: any) => p.status === 'aguardando');
+        if (aguardando) setPedidoId(aguardando.id);
+      }
+    } catch (err) {}
+  };
+
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor="#E8E8E4" />
@@ -34,17 +92,17 @@ export default function AguardandoMotoboyScreen() {
                 <Ionicons name="person-outline" size={14} color="#999" />
               </View>
               <View>
-                <Text style={styles.mbNome}>Carlos M.</Text>
-                <Text style={styles.mbDist}>0,8 km</Text>
+                <Text style={styles.mbNome}>Buscando...</Text>
+                <Text style={styles.mbDist}>próximo</Text>
               </View>
             </View>
             <View style={styles.mbPill}>
               <View style={styles.mbAvatar}>
-                <Ionicons name="person-outline" size={14} color="#999" />
+                <Ionicons name="time-outline" size={14} color="#999" />
               </View>
               <View>
-                <Text style={styles.mbNome}>João P.</Text>
-                <Text style={styles.mbDist}>1,2 km</Text>
+                <Text style={styles.mbNome}>Aguarde</Text>
+                <Text style={styles.mbDist}>~5 min</Text>
               </View>
             </View>
           </View>
