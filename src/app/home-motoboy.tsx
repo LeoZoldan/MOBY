@@ -1,24 +1,58 @@
 import {
-  StyleSheet, Text, View, TouchableOpacity, StatusBar, Dimensions,
+  StyleSheet, Text, View, TouchableOpacity, StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { listarDisponiveis, aceitarPedido, getUsuario } from '../services/api';
 
 const { height } = Dimensions.get('window');
 
 export default function HomeMotoboyScreen() {
   const [online, setOnline] = useState(true);
+  const [pedidos, setPedidos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [usuario, setUsuario] = useState<any>(null);
 
-  const corrida = {
-    valor: 'R$ 18,50',
-    tipo: 'Entrega Express',
-    tempo: '~12 min',
-    distancia: '2,4 km',
-    origem: 'Rua das Flores, 123 — Centro',
-    destino: 'Av. Brasil, 456 — Bairro Novo',
+  useEffect(() => {
+    getUsuario().then(setUsuario);
+  }, []);
+
+  useEffect(() => {
+    if (online) {
+      buscarPedidos();
+      const interval = setInterval(buscarPedidos, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [online]);
+
+  const buscarPedidos = async () => {
+    try {
+      const data = await listarDisponiveis();
+      if (Array.isArray(data)) setPedidos(data);
+    } catch (err) {
+      console.log('Erro ao buscar pedidos:', err);
+    }
   };
+
+  const handleAceitar = async (pedidoId: string) => {
+    setLoading(true);
+    try {
+      const data = await aceitarPedido(pedidoId);
+      if (data.erro) {
+        alert(data.erro);
+        return;
+      }
+      router.push('/mb-a-caminho' as any);
+    } catch (err) {
+      alert('Erro ao aceitar pedido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pedidoAtual = pedidos[0];
 
   return (
     <>
@@ -27,15 +61,12 @@ export default function HomeMotoboyScreen() {
 
         <SafeAreaView>
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.push('/perfil-motoboy' as any)}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity onPress={() => router.push('/perfil-motoboy' as any)} activeOpacity={0.8}>
               <Ionicons name="person-circle-outline" size={36} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
               <Text style={styles.greeting}>Bem-vindo de volta</Text>
-              <Text style={styles.name}>Carlos Motoboy</Text>
+              <Text style={styles.name}>{usuario?.nome || 'Motoboy'}</Text>
             </View>
             <TouchableOpacity style={styles.toggleWrap} onPress={() => setOnline(!online)} activeOpacity={0.8}>
               <Text style={[styles.toggleLabel, { color: online ? '#3B6D11' : '#AAA' }]}>
@@ -55,69 +86,79 @@ export default function HomeMotoboyScreen() {
           </View>
           <View style={styles.earningsStrip}>
             <View style={styles.earnItem}>
-              <Text style={styles.earnLabel}>Hoje</Text>
-              <Text style={[styles.earnValue, { color: '#3B6D11' }]}>R$ 87</Text>
+              <Text style={styles.earnLabel}>Disponíveis</Text>
+              <Text style={[styles.earnValue, { color: '#3B6D11' }]}>{pedidos.length}</Text>
             </View>
             <View style={styles.earnDivider} />
             <View style={styles.earnItem}>
-              <Text style={styles.earnLabel}>Corridas</Text>
-              <Text style={styles.earnValue}>6</Text>
+              <Text style={styles.earnLabel}>Status</Text>
+              <Text style={styles.earnValue}>{online ? 'Online' : 'Offline'}</Text>
             </View>
             <View style={styles.earnDivider} />
             <View style={styles.earnItem}>
-              <Text style={styles.earnLabel}>Saldo</Text>
-              <Text style={styles.earnValue}>R$ 320</Text>
+              <Text style={styles.earnLabel}>Área</Text>
+              <Text style={styles.earnValue}>Local</Text>
             </View>
           </View>
         </View>
 
-        {online && (
+        {online && pedidoAtual && (
           <View style={styles.corridaCard}>
             <View style={styles.corridaHeader}>
               <View style={styles.corridaBadge}>
                 <View style={styles.badgeDot} />
                 <Text style={styles.badgeTxt}>Nova corrida disponível</Text>
               </View>
-              <Text style={styles.corridaValor}>{corrida.valor}</Text>
+              <Text style={styles.corridaValor}>R$ {pedidoAtual.valor?.toFixed(2).replace('.', ',')}</Text>
             </View>
             <View style={styles.corridaInfo}>
               <View style={styles.infoPill}>
                 <Ionicons name="cube-outline" size={12} color="#555" />
-                <Text style={styles.infoTxt}>{corrida.tipo}</Text>
+                <Text style={styles.infoTxt}>{pedidoAtual.servico}</Text>
               </View>
               <View style={styles.infoPill}>
-                <Ionicons name="time-outline" size={12} color="#555" />
-                <Text style={styles.infoTxt}>{corrida.tempo}</Text>
-              </View>
-              <View style={styles.infoPill}>
-                <Ionicons name="location-outline" size={12} color="#555" />
-                <Text style={styles.infoTxt}>{corrida.distancia}</Text>
+                <Ionicons name="person-outline" size={12} color="#555" />
+                <Text style={styles.infoTxt}>{pedidoAtual.cliente?.usuario?.nome}</Text>
               </View>
             </View>
             <View style={styles.rota}>
               <View style={styles.rotaItem}>
                 <View style={[styles.rotaDot, { backgroundColor: '#111' }]} />
-                <Text style={styles.rotaTxt}>{corrida.origem}</Text>
+                <Text style={styles.rotaTxt}>{pedidoAtual.origem}</Text>
               </View>
               <View style={styles.rotaLine} />
               <View style={styles.rotaItem}>
                 <View style={[styles.rotaDot, { backgroundColor: '#3B6D11' }]} />
-                <Text style={styles.rotaTxt}>{corrida.destino}</Text>
+                <Text style={styles.rotaTxt}>{pedidoAtual.destino}</Text>
               </View>
             </View>
             <View style={styles.btns}>
-              <TouchableOpacity style={styles.btnRecusar} onPress={() => setOnline(false)} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.btnRecusar} onPress={() => setPedidos(pedidos.slice(1))} activeOpacity={0.8}>
                 <Text style={styles.btnRecusarTxt}>Recusar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.btnAceitar}
-                onPress={() => router.push('/mb-a-caminho' as any)}
+                onPress={() => handleAceitar(pedidoAtual.id)}
                 activeOpacity={0.85}
+                disabled={loading}
               >
-                <Text style={styles.btnAceitarTxt}>Aceitar corrida</Text>
-                <Ionicons name="chevron-forward" size={16} color="#fff" />
+                {loading
+                  ? <ActivityIndicator color="#fff" />
+                  : <>
+                      <Text style={styles.btnAceitarTxt}>Aceitar corrida</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#fff" />
+                    </>
+                }
               </TouchableOpacity>
             </View>
+          </View>
+        )}
+
+        {online && !pedidoAtual && (
+          <View style={styles.offlineCard}>
+            <Ionicons name="search-outline" size={28} color="#CCC" />
+            <Text style={styles.offlineTxt}>Procurando corridas...</Text>
+            <Text style={styles.offlineSub}>Você será notificado quando houver pedidos</Text>
           </View>
         )}
 

@@ -26,7 +26,7 @@ export default function AguardandoMotoboyScreen() {
             <View style={styles.statusDot} />
             <Text style={styles.statusTxt}>Procurando motoboy...</Text>
           </View>
-          <Text style={styles.statusSub}>2 motoboys disponíveis na sua área</Text>
+          <Text style={styles.statusSub}>Aguardando motoboy disponível</Text>
 
           <View style={styles.motoboysList}>
             <View style={styles.mbPill}>
@@ -50,14 +50,6 @@ export default function AguardandoMotoboyScreen() {
           </View>
 
           <TouchableOpacity
-            style={styles.btnSimular}
-            onPress={() => router.replace('/corrida-andamento' as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.btnSimularTxt}>Simular aceite (teste)</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={styles.btnCancelar}
             onPress={() => router.back()}
             activeOpacity={0.8}
@@ -74,42 +66,22 @@ export default function AguardandoMotoboyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F8F8' },
   map: {
-    flex: 1,
-    backgroundColor: '#E8E8E4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    position: 'relative',
+    flex: 1, backgroundColor: '#E8E8E4', alignItems: 'center',
+    justifyContent: 'center', gap: 8, position: 'relative',
   },
   mapTxt: { fontSize: 13, color: '#AAA' },
   mbPin: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 99,
-    backgroundColor: '#111',
-    borderWidth: 2,
-    borderColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    position: 'absolute', width: 32, height: 32, borderRadius: 99,
+    backgroundColor: '#111', borderWidth: 2, borderColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3, shadowRadius: 4, elevation: 4,
   },
   sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 18,
-    paddingBottom: 32,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 10,
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 18, paddingBottom: 32, gap: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08, shadowRadius: 12, elevation: 10,
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 99, backgroundColor: '#F5A623' },
@@ -117,41 +89,19 @@ const styles = StyleSheet.create({
   statusSub: { fontSize: 11, color: '#BBB', marginTop: -4 },
   motoboysList: { flexDirection: 'row', gap: 8 },
   mbPill: {
-    flex: 1,
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
+    flex: 1, backgroundColor: '#F7F7F7', borderRadius: 12, padding: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: '#EBEBEB',
   },
   mbAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 99,
-    backgroundColor: '#EBEBEB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 28, height: 28, borderRadius: 99, backgroundColor: '#EBEBEB',
+    alignItems: 'center', justifyContent: 'center',
   },
   mbNome: { fontSize: 11, fontWeight: '600', color: '#111' },
   mbDist: { fontSize: 10, color: '#BBB' },
-  btnSimular: {
-    backgroundColor: '#111',
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnSimularTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
   btnCancelar: {
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1.5,
-    borderColor: '#EBEBEB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: '#EBEBEB',
+    alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
   btnCancelarTxt: { fontSize: 13, fontWeight: '600', color: '#AAA' },
 });

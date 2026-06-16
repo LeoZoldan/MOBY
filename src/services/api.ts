@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.5.102:3000'; // IP da sua máquina na rede local
+const BASE_URL = 'http://192.168.5.102:3000';
 
 const getToken = async () => {
   return await AsyncStorage.getItem('token');
@@ -14,7 +14,6 @@ const headers = async () => {
   };
 };
 
-// AUTH
 export const cadastrar = async (dados: any) => {
   const res = await fetch(`${BASE_URL}/auth/cadastrar`, {
     method: 'POST',
@@ -48,7 +47,13 @@ export const getUsuario = async () => {
   return usuario ? JSON.parse(usuario) : null;
 };
 
-// PEDIDOS
+export const getMe = async () => {
+  const res = await fetch(`${BASE_URL}/auth/me`, {
+    headers: await headers(),
+  });
+  return res.json();
+};
+
 export const criarPedido = async (dados: any) => {
   const res = await fetch(`${BASE_URL}/pedidos`, {
     method: 'POST',

@@ -1,10 +1,11 @@
 import {
   StyleSheet, Text, View, TouchableOpacity, StatusBar,
-  Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform,
+  Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { atualizarStatus, minhasCorridas } from '../services/api';
 
 const MSGS_INICIAIS = [
   { id: 1, tipo: 'sent', texto: 'Estou a caminho! Chego em 3 minutos' },
@@ -16,6 +17,24 @@ export default function MbACaminhoScreen() {
   const [msgs, setMsgs] = useState(MSGS_INICIAIS);
   const [inputMsg, setInputMsg] = useState('');
   const [etapa, setEtapa] = useState<'coleta' | 'entrega'>('coleta');
+  const [loading, setLoading] = useState(false);
+  const [pedido, setPedido] = useState<any>(null);
+
+  useEffect(() => {
+    buscarCorridaAtual();
+  }, []);
+
+  const buscarCorridaAtual = async () => {
+    try {
+      const corridas = await minhasCorridas();
+      if (Array.isArray(corridas)) {
+        const ativa = corridas.find((c: any) => c.status === 'aceito' || c.status === 'coletado');
+        if (ativa) setPedido(ativa);
+      }
+    } catch (err) {
+      console.log('Erro ao buscar corrida:', err);
+    }
+  };
 
   const enviarMsg = () => {
     if (!inputMsg.trim()) return;
@@ -23,8 +42,35 @@ export default function MbACaminhoScreen() {
     setInputMsg('');
   };
 
-  const confirmarColeta = () => setEtapa('entrega');
-  const confirmarEntrega = () => router.replace('/mb-finalizada' as any);
+  const confirmarColeta = async () => {
+    if (!pedido) { setEtapa('entrega'); return; }
+    setLoading(true);
+    try {
+      await atualizarStatus(pedido.id, 'coletado');
+      setEtapa('entrega');
+    } catch (err) {
+      console.log('Erro ao confirmar coleta:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmarEntrega = async () => {
+    if (!pedido) { router.replace('/mb-finalizada' as any); return; }
+    setLoading(true);
+    try {
+      await atualizarStatus(pedido.id, 'entregue');
+      router.replace('/mb-finalizada' as any);
+    } catch (err) {
+      console.log('Erro ao confirmar entrega:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const origemExibida = pedido?.origem || 'Carregando...';
+  const destinoExibido = pedido?.destino || 'Carregando...';
+  const nomeCliente = pedido?.cliente?.usuario?.nome || 'Cliente';
 
   return (
     <>
@@ -43,7 +89,7 @@ export default function MbACaminhoScreen() {
                 {etapa === 'coleta' ? 'A caminho da coleta' : 'Entregando'}
               </Text>
               <Text style={styles.statusSub}>
-                {etapa === 'coleta' ? 'Rua das Flores, 123' : 'Av. Brasil, 456'}
+                {etapa === 'coleta' ? origemExibida : destinoExibido}
               </Text>
             </View>
             <View style={styles.timer}>
@@ -73,9 +119,9 @@ export default function MbACaminhoScreen() {
               <Ionicons name="person-outline" size={16} color="#999" />
             </View>
             <View style={styles.cliInfo}>
-              <Text style={styles.cliNome}>João Silva</Text>
+              <Text style={styles.cliNome}>{nomeCliente}</Text>
               <Text style={styles.cliEnd}>
-                {etapa === 'coleta' ? 'Rua das Flores, 123' : 'Av. Brasil, 456'}
+                {etapa === 'coleta' ? origemExibida : destinoExibido}
               </Text>
             </View>
             <TouchableOpacity style={styles.chatBtn} onPress={() => setChatAberto(true)} activeOpacity={0.85}>
@@ -94,13 +140,18 @@ export default function MbACaminhoScreen() {
             style={styles.btnConfirmar}
             onPress={etapa === 'coleta' ? confirmarColeta : confirmarEntrega}
             activeOpacity={0.85}
+            disabled={loading}
           >
-            <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-            <Text style={styles.btnConfirmarTxt}>
-              {etapa === 'coleta' ? 'Confirmar coleta' : 'Confirmar entrega'}
-            </Text>
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <>
+                  <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                  <Text style={styles.btnConfirmarTxt}>
+                    {etapa === 'coleta' ? 'Confirmar coleta' : 'Confirmar entrega'}
+                  </Text>
+                </>
+            }
           </TouchableOpacity>
-
         </View>
 
         <Modal visible={chatAberto} animationType="slide" transparent>
@@ -109,7 +160,7 @@ export default function MbACaminhoScreen() {
               <TouchableOpacity style={styles.chatBackdrop} onPress={() => setChatAberto(false)} />
               <View style={styles.chatModal}>
                 <View style={styles.chatHeader}>
-                  <Text style={styles.chatTitle}>Chat com João</Text>
+                  <Text style={styles.chatTitle}>Chat com {nomeCliente}</Text>
                   <TouchableOpacity style={styles.chatClose} onPress={() => setChatAberto(false)}>
                     <Ionicons name="close" size={16} color="#555" />
                   </TouchableOpacity>

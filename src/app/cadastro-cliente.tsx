@@ -1,35 +1,30 @@
 import {
   StyleSheet, Text, View, TouchableOpacity, TextInput,
-  ScrollView, StatusBar, KeyboardAvoidingView, Platform,
+  ScrollView, StatusBar, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { cadastrar } from '../services/api';
 
 type TipoConta = 'fisica' | 'empresa';
 
 export default function CadastroClienteScreen() {
   const [tipo, setTipo] = useState<TipoConta | null>(null);
-  const [step, setStep] = useState(0); // 0 = escolha tipo, 1 = dados, 2 = endereço
+  const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // Pessoa física
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
   const [nascimento, setNascimento] = useState('');
-
-  // Empresa
   const [razaoSocial, setRazaoSocial] = useState('');
   const [cnpj, setCnpj] = useState('');
   const [responsavel, setResponsavel] = useState('');
-
-  // Comuns
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [verSenha, setVerSenha] = useState(false);
-
-  // Endereço
   const [cep, setCep] = useState('');
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
@@ -40,10 +35,41 @@ export default function CadastroClienteScreen() {
 
   const TOTAL_STEPS = 2;
 
+  const finalizar = async () => {
+    setLoading(true);
+    try {
+      const endereco = `${rua}, ${numero}${complemento ? ` - ${complemento}` : ''}, ${bairro}, ${cidade} - ${estado}, ${cep}`;
+      const dados = {
+        nome: tipo === 'fisica' ? nome : responsavel,
+        email,
+        telefone,
+        senha,
+        tipo: 'cliente',
+        tipoConta: tipo,
+        documento: tipo === 'fisica' ? cpf : cnpj,
+        endereco,
+        ...(tipo === 'empresa' && { razaoSocial }),
+      };
+
+      const data = await cadastrar(dados);
+
+      if (data.erro) {
+        Alert.alert('Erro', data.erro);
+        return;
+      }
+
+      router.replace('/home-cliente' as any);
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível conectar ao servidor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const avancar = () => {
     if (step === 0 && tipo) setStep(1);
     else if (step < TOTAL_STEPS) setStep(step + 1);
-    else router.replace('/home-cliente');
+    else finalizar();
   };
 
   const voltar = () => {
@@ -51,58 +77,12 @@ export default function CadastroClienteScreen() {
     else router.back();
   };
 
-  const formatCpf = (text: string) => {
-    const cpfNumeros = text.replace(/\D/g, '');
-
-    return cpfNumeros
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  };
-
-  const formatNascimento = (text: string) => {
-    const numeros = text.replace(/\D/g, '');
-
-    return numeros
-      .replace(/(\d{2})(\d)/, '$1/$2')
-      .replace(/(\d{2})(\d)/, '$1/$2')
-      .slice(0, 10);
-  };
-
-  const formatTelefone = (text: string) => {
-    const numeros = text.replace(/\D/g, '');
-
-    return numeros
-      .replace(/^(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .slice(0, 15);
-  };
-
-  const formatCNPJ = (text: string) => {
-    const cnpjNumeros = text.replace(/\D/g, '');
-
-    return cnpjNumeros
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d{1,2})/, '$1-$2');
-  };
-
-  const formatCEP = (text: string) => {
-    const cepNumeros = text.replace(/\D/g, '');
-
-    return cepNumeros
-      .replace(/(\d{5})(\d)/, '$1-$2');
-  };
-
-  const formatNumeroEndereco = (text: string) => {
-    return text.replace(/\D/g, '');
-  };
-
-  const formatEstado = (text: string) => {
-      return text.toUpperCase().replace(/[^a-zA-ZÀ-ÿ\s]/g, '') ;
-    }
-
+  const formatCpf = (text: string) => text.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  const formatNascimento = (text: string) => text.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2').replace(/(\d{2})(\d)/, '$1/$2').slice(0, 10);
+  const formatTelefone = (text: string) => text.replace(/\D/g, '').replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
+  const formatCNPJ = (text: string) => text.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})/, '$1-$2');
+  const formatCEP = (text: string) => text.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2');
+  const formatEstado = (text: string) => text.toUpperCase().replace(/[^A-Z]/g, '');
 
   const titulos = ['Tipo de conta', 'Dados pessoais', 'Endereço'];
 
@@ -120,9 +100,7 @@ export default function CadastroClienteScreen() {
               </TouchableOpacity>
               <View style={styles.stepInfo}>
                 <Text style={styles.stepTitle}>{titulos[step]}</Text>
-                <Text style={styles.stepSub}>
-                  {step === 0 ? 'Escolha seu perfil' : `Etapa ${step} de ${TOTAL_STEPS}`}
-                </Text>
+                <Text style={styles.stepSub}>{step === 0 ? 'Escolha seu perfil' : `Etapa ${step} de ${TOTAL_STEPS}`}</Text>
               </View>
               {step > 0 && (
                 <View style={styles.progress}>
@@ -136,15 +114,10 @@ export default function CadastroClienteScreen() {
 
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-            {/* Step 0 — Escolha tipo */}
             {step === 0 && (
               <View style={styles.tipoWrap}>
                 <Text style={styles.tipoLabel}>Qual tipo de conta você precisa?</Text>
-                <TouchableOpacity
-                  style={[styles.tipoCard, tipo === 'fisica' && styles.tipoCardActive]}
-                  onPress={() => setTipo('fisica')}
-                  activeOpacity={0.85}
-                >
+                <TouchableOpacity style={[styles.tipoCard, tipo === 'fisica' && styles.tipoCardActive]} onPress={() => setTipo('fisica')} activeOpacity={0.85}>
                   <View style={[styles.tipoIcon, tipo === 'fisica' ? styles.tipoIconActive : styles.tipoIconOff]}>
                     <Ionicons name="person-outline" size={22} color={tipo === 'fisica' ? '#fff' : '#999'} />
                   </View>
@@ -156,12 +129,7 @@ export default function CadastroClienteScreen() {
                     {tipo === 'fisica' && <View style={styles.radioDot} />}
                   </View>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.tipoCard, tipo === 'empresa' && styles.tipoCardActive]}
-                  onPress={() => setTipo('empresa')}
-                  activeOpacity={0.85}
-                >
+                <TouchableOpacity style={[styles.tipoCard, tipo === 'empresa' && styles.tipoCardActive]} onPress={() => setTipo('empresa')} activeOpacity={0.85}>
                   <View style={[styles.tipoIcon, tipo === 'empresa' ? styles.tipoIconActive : styles.tipoIconOff]}>
                     <Ionicons name="business-outline" size={22} color={tipo === 'empresa' ? '#fff' : '#999'} />
                   </View>
@@ -176,48 +144,23 @@ export default function CadastroClienteScreen() {
               </View>
             )}
 
-            {/* Step 1 — Dados pessoais */}
             {step === 1 && (
               <View style={styles.fields}>
                 {tipo === 'fisica' ? (
                   <>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>Nome completo</Text>
-                      <TextInput style={styles.input} placeholder="João da Silva" placeholderTextColor="#CCC" value={nome} onChangeText={setNome} autoCapitalize="words" />
-                    </View>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>CPF</Text>
-                      <TextInput style={styles.input} placeholder="000.000.000-00" placeholderTextColor="#CCC" value={cpf} onChangeText={(text) => setCpf(formatCpf(text))} keyboardType="numeric" maxLength={14} />
-                    </View>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>Data de nascimento</Text>
-                      <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#CCC" value={nascimento} onChangeText={(text) => setNascimento(formatNascimento(text))} keyboardType="numeric" maxLength={10} />
-                    </View>
+                    <View style={styles.field}><Text style={styles.label}>Nome completo</Text><TextInput style={styles.input} placeholder="João da Silva" placeholderTextColor="#CCC" value={nome} onChangeText={setNome} autoCapitalize="words" /></View>
+                    <View style={styles.field}><Text style={styles.label}>CPF</Text><TextInput style={styles.input} placeholder="000.000.000-00" placeholderTextColor="#CCC" value={cpf} onChangeText={(t) => setCpf(formatCpf(t))} keyboardType="numeric" maxLength={14} /></View>
+                    <View style={styles.field}><Text style={styles.label}>Data de nascimento</Text><TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="#CCC" value={nascimento} onChangeText={(t) => setNascimento(formatNascimento(t))} keyboardType="numeric" maxLength={10} /></View>
                   </>
                 ) : (
                   <>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>Razão social</Text>
-                      <TextInput style={styles.input} placeholder="Empresa Ltda." placeholderTextColor="#CCC" value={razaoSocial} onChangeText={setRazaoSocial} autoCapitalize="words" />
-                    </View>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>CNPJ</Text>
-                      <TextInput style={styles.input} placeholder="00.000.000/0000-00" placeholderTextColor="#CCC" value={cnpj} onChangeText={(text) => setCnpj(formatCNPJ(text))} keyboardType="numeric" maxLength={18} />
-                    </View>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>Nome do responsável</Text>
-                      <TextInput style={styles.input} placeholder="Nome completo" placeholderTextColor="#CCC" value={responsavel} onChangeText={setResponsavel} autoCapitalize="words" />
-                    </View>
+                    <View style={styles.field}><Text style={styles.label}>Razão social</Text><TextInput style={styles.input} placeholder="Empresa Ltda." placeholderTextColor="#CCC" value={razaoSocial} onChangeText={setRazaoSocial} autoCapitalize="words" /></View>
+                    <View style={styles.field}><Text style={styles.label}>CNPJ</Text><TextInput style={styles.input} placeholder="00.000.000/0000-00" placeholderTextColor="#CCC" value={cnpj} onChangeText={(t) => setCnpj(formatCNPJ(t))} keyboardType="numeric" maxLength={18} /></View>
+                    <View style={styles.field}><Text style={styles.label}>Nome do responsável</Text><TextInput style={styles.input} placeholder="Nome completo" placeholderTextColor="#CCC" value={responsavel} onChangeText={setResponsavel} autoCapitalize="words" /></View>
                   </>
                 )}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Email</Text>
-                  <TextInput style={styles.input} placeholder="email@exemplo.com" placeholderTextColor="#CCC" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Telefone</Text>
-                  <TextInput style={styles.input} placeholder="(54) 99999-9999" placeholderTextColor="#CCC" value={telefone} onChangeText={(text) => setTelefone(formatTelefone(text))} keyboardType="phone-pad" maxLength={15} />
-                </View>
+                <View style={styles.field}><Text style={styles.label}>Email</Text><TextInput style={styles.input} placeholder="email@exemplo.com" placeholderTextColor="#CCC" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /></View>
+                <View style={styles.field}><Text style={styles.label}>Telefone</Text><TextInput style={styles.input} placeholder="(54) 99999-9999" placeholderTextColor="#CCC" value={telefone} onChangeText={(t) => setTelefone(formatTelefone(t))} keyboardType="phone-pad" maxLength={15} /></View>
                 <View style={styles.field}>
                   <Text style={styles.label}>Senha</Text>
                   <View style={styles.inputRow}>
@@ -230,40 +173,18 @@ export default function CadastroClienteScreen() {
               </View>
             )}
 
-            {/* Step 2 — Endereço */}
             {step === 2 && (
               <View style={styles.fields}>
-                <View style={styles.field}>
-                  <Text style={styles.label}>CEP</Text>
-                  <TextInput style={styles.input} placeholder="99999-000" placeholderTextColor="#CCC" value={cep} onChangeText={(text) => setCep(formatCEP(text))} keyboardType="numeric" maxLength={9} />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Rua</Text>
-                  <TextInput style={styles.input} placeholder="Rua das Flores" placeholderTextColor="#CCC" value={rua} onChangeText={setRua} autoCapitalize="words" />
-                </View>
+                <View style={styles.field}><Text style={styles.label}>CEP</Text><TextInput style={styles.input} placeholder="99999-000" placeholderTextColor="#CCC" value={cep} onChangeText={(t) => setCep(formatCEP(t))} keyboardType="numeric" maxLength={9} /></View>
+                <View style={styles.field}><Text style={styles.label}>Rua</Text><TextInput style={styles.input} placeholder="Rua das Flores" placeholderTextColor="#CCC" value={rua} onChangeText={setRua} autoCapitalize="words" /></View>
                 <View style={styles.rowFields}>
-                  <View style={[styles.field, { flex: 1 }]}>
-                    <Text style={styles.label}>Número</Text>
-                    <TextInput style={styles.input} placeholder="123" placeholderTextColor="#CCC" value={numero} onChangeText={(text) => setNumero(formatNumeroEndereco(text))} keyboardType="numeric" />
-                  </View>
-                  <View style={[styles.field, { flex: 1.5 }]}>
-                    <Text style={styles.label}>Complemento</Text>
-                    <TextInput style={styles.input} placeholder="Apto 2 (opcional)" placeholderTextColor="#CCC" value={complemento} onChangeText={setComplemento} />
-                  </View>
+                  <View style={[styles.field, { flex: 1 }]}><Text style={styles.label}>Número</Text><TextInput style={styles.input} placeholder="123" placeholderTextColor="#CCC" value={numero} onChangeText={(t) => setNumero(t.replace(/\D/g, ''))} keyboardType="numeric" /></View>
+                  <View style={[styles.field, { flex: 1.5 }]}><Text style={styles.label}>Complemento</Text><TextInput style={styles.input} placeholder="Apto 2 (opcional)" placeholderTextColor="#CCC" value={complemento} onChangeText={setComplemento} /></View>
                 </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Bairro</Text>
-                  <TextInput style={styles.input} placeholder="Centro" placeholderTextColor="#CCC" value={bairro} onChangeText={setBairro} autoCapitalize="words" />
-                </View>
+                <View style={styles.field}><Text style={styles.label}>Bairro</Text><TextInput style={styles.input} placeholder="Centro" placeholderTextColor="#CCC" value={bairro} onChangeText={setBairro} autoCapitalize="words" /></View>
                 <View style={styles.rowFields}>
-                  <View style={[styles.field, { flex: 1.5 }]}>
-                    <Text style={styles.label}>Cidade</Text>
-                    <TextInput style={styles.input} placeholder="Passo Fundo" placeholderTextColor="#CCC" value={cidade} onChangeText={setCidade} autoCapitalize="words" />
-                  </View>
-                  <View style={[styles.field, { flex: 1 }]}>
-                    <Text style={styles.label}>Estado</Text>
-                    <TextInput style={styles.input} placeholder="RS" placeholderTextColor="#CCC" value={estado} onChangeText={(text) => setEstado(formatEstado(text))} autoCapitalize="characters" maxLength={2} />
-                  </View>
+                  <View style={[styles.field, { flex: 1.5 }]}><Text style={styles.label}>Cidade</Text><TextInput style={styles.input} placeholder="Passo Fundo" placeholderTextColor="#CCC" value={cidade} onChangeText={setCidade} autoCapitalize="words" /></View>
+                  <View style={[styles.field, { flex: 1 }]}><Text style={styles.label}>Estado</Text><TextInput style={styles.input} placeholder="RS" placeholderTextColor="#CCC" value={estado} onChangeText={(t) => setEstado(formatEstado(t))} autoCapitalize="characters" maxLength={2} /></View>
                 </View>
               </View>
             )}
@@ -275,12 +196,15 @@ export default function CadastroClienteScreen() {
               style={[styles.nextBtn, step === 0 && !tipo && styles.nextBtnDisabled]}
               onPress={avancar}
               activeOpacity={0.85}
-              disabled={step === 0 && !tipo}
+              disabled={(step === 0 && !tipo) || loading}
             >
-              <Text style={styles.nextTxt}>
-                {step === 0 ? 'Continuar' : step === TOTAL_STEPS ? 'Finalizar cadastro' : 'Continuar'}
-              </Text>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <>
+                    <Text style={styles.nextTxt}>{step === 0 ? 'Continuar' : step === TOTAL_STEPS ? 'Finalizar cadastro' : 'Continuar'}</Text>
+                    <Ionicons name="chevron-forward" size={18} color="#fff" />
+                  </>
+              }
             </TouchableOpacity>
           </View>
 
@@ -302,8 +226,6 @@ const styles = StyleSheet.create({
   dot: { flex: 1, height: 3, borderRadius: 99 },
   body: { flex: 1 },
   bodyContent: { padding: 20, paddingBottom: 8 },
-
-  // Tipo
   tipoWrap: { gap: 12 },
   tipoLabel: { fontSize: 13, color: '#999', marginBottom: 4 },
   tipoCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: '#EBEBEB' },
@@ -317,8 +239,6 @@ const styles = StyleSheet.create({
   radio: { width: 20, height: 20, borderRadius: 99, borderWidth: 1.5, borderColor: '#DDD', alignItems: 'center', justifyContent: 'center' },
   radioActive: { borderColor: '#111', backgroundColor: '#111' },
   radioDot: { width: 8, height: 8, borderRadius: 99, backgroundColor: '#fff' },
-
-  // Campos
   fields: { gap: 14 },
   field: { gap: 6 },
   label: { fontSize: 11, fontWeight: '600', color: '#999', letterSpacing: 0.5, textTransform: 'uppercase' },

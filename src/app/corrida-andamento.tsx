@@ -40,7 +40,6 @@ export default function CorridaAndamentoScreen() {
         </View>
 
         <View style={styles.sheet}>
-
           <View style={styles.motoboyCard}>
             <View style={styles.avatar}>
               <Ionicons name="person-outline" size={20} color="#999" />
@@ -75,15 +74,6 @@ export default function CorridaAndamentoScreen() {
             ))}
           </View>
 
-          {/* Botão simular entrega */}
-          <TouchableOpacity
-            style={styles.btnSimular}
-            onPress={() => router.replace('/corrida-finalizada' as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.btnSimularTxt}>Simular entrega (teste)</Text>
-          </TouchableOpacity>
-
           <View style={styles.btns}>
             <TouchableOpacity style={styles.btnChat} onPress={() => setChatAberto(true)} activeOpacity={0.85}>
               <Ionicons name="chatbubble-outline" size={16} color="#111" />
@@ -93,7 +83,6 @@ export default function CorridaAndamentoScreen() {
               <Text style={styles.btnCancelarTxt}>Cancelar</Text>
             </TouchableOpacity>
           </View>
-
         </View>
 
         <Modal visible={chatAberto} animationType="slide" transparent>
@@ -177,11 +166,6 @@ const styles = StyleSheet.create({
   stepLabelOn: { color: '#111', fontWeight: '600' },
   stepLine: { position: 'absolute', top: 11, left: '50%', right: '-50%', height: 2, backgroundColor: '#EBEBEB' },
   stepLineOn: { backgroundColor: '#111' },
-  btnSimular: {
-    backgroundColor: '#3B6D11', borderRadius: 14, padding: 14,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  btnSimularTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
   btns: { flexDirection: 'row', gap: 10 },
   btnChat: {
     flex: 1, backgroundColor: '#F7F7F7', borderRadius: 14, padding: 14,

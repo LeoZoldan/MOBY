@@ -3,8 +3,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { getMe } from '../services/api';
 
 const SERVICOS = [
   { id: 'entrega', nome: 'Entrega Express', desc: 'Pacotes e mercadorias', icon: 'cube-outline' },
@@ -16,6 +17,11 @@ const SERVICOS = [
 export default function HomeClienteScreen() {
   const [servicoSelecionado, setServicoSelecionado] = useState('entrega');
   const [maquinaAtivada, setMaquinaAtivada] = useState(false);
+  const [usuario, setUsuario] = useState<any>(null);
+
+  useEffect(() => {
+    getMe().then(setUsuario);
+  }, []);
 
   const irParaEnderecos = () => {
     router.push({
@@ -27,6 +33,8 @@ export default function HomeClienteScreen() {
     });
   };
 
+  const primeiroNome = usuario?.nome?.split(' ')[0] || 'Olá';
+
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
@@ -36,7 +44,7 @@ export default function HomeClienteScreen() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <View>
-                <Text style={styles.greeting}>Olá, João</Text>
+                <Text style={styles.greeting}>Olá, {primeiroNome}</Text>
                 <Text style={styles.title}>O que você precisa?</Text>
                 <Text style={styles.sub}>Escolha o tipo de serviço</Text>
               </View>

@@ -1,10 +1,11 @@
 import {
-  StyleSheet, Text, View, TouchableOpacity, ScrollView, StatusBar,
+  StyleSheet, Text, View, TouchableOpacity, ScrollView, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { criarPedido } from '../services/api';
 
 const SERVICOS: Record<string, { nome: string; desc: string; icon: string; preco: number }> = {
   entrega:    { nome: 'Entrega Express', desc: 'Pacotes e mercadorias',     icon: 'cube-outline',          preco: 12 },
@@ -22,15 +23,41 @@ const PAGAMENTOS = [
 ];
 
 export default function ConfirmarPedidoScreen() {
-  const { servico = 'entrega', maquina = '0' } = useLocalSearchParams<{ servico: string; maquina: string }>();
+  const params = useLocalSearchParams();
+  const servico = String(params.servico || 'entrega');
+  const maquina = String(params.maquina || '0');
+  const origem = String(params.origem || '');
+  const destino = String(params.destino || '');
+
   const [pagamento, setPagamento] = useState('cartao');
+  const [loading, setLoading] = useState(false);
 
   const temMaquina = maquina === '1';
   const servicoInfo = SERVICOS[servico] ?? SERVICOS.entrega;
   const total = servicoInfo.preco + (temMaquina ? TAXA_MAQUINA : 0);
 
-  const solicitar = () => {
-    router.replace('/aguardando-motoboy' as any);
+  const solicitar = async () => {
+    setLoading(true);
+    try {
+      const data = await criarPedido({
+        servico,
+        origem: origem || 'Origem não informada',
+        destino: destino || 'Destino não informado',
+        valor: total,
+        maquina: temMaquina,
+      });
+
+      if (data.erro) {
+        Alert.alert('Erro', data.erro);
+        return;
+      }
+
+      router.replace('/aguardando-motoboy' as any);
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível criar o pedido');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,7 +78,6 @@ export default function ConfirmarPedidoScreen() {
 
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
 
-          {/* Serviço */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Serviço</Text>
             <View style={styles.servicoRow}>
@@ -65,28 +91,26 @@ export default function ConfirmarPedidoScreen() {
             </View>
           </View>
 
-          {/* Rota */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Rota</Text>
             <View style={styles.rota}>
               <View style={styles.rotaItem}>
                 <View style={[styles.rotaDot, { backgroundColor: '#111' }]} />
-                <Text style={styles.rotaTxt}>Rua das Flores, 123 — Centro</Text>
+                <Text style={styles.rotaTxt}>{origem || 'Origem não informada'}</Text>
               </View>
               <View style={styles.rotaLine} />
               <View style={styles.rotaItem}>
                 <View style={[styles.rotaDot, { backgroundColor: '#3B6D11' }]} />
-                <Text style={styles.rotaTxt}>Av. Brasil, 456 — Bairro Novo</Text>
+                <Text style={styles.rotaTxt}>{destino || 'Destino não informado'}</Text>
               </View>
             </View>
           </View>
 
-          {/* Valores */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Resumo de valores</Text>
             <View style={styles.valorRows}>
               <View style={styles.valorRow}>
-                <Text style={styles.valorLabel}>{servicoInfo.nome} (2,4 km)</Text>
+                <Text style={styles.valorLabel}>{servicoInfo.nome}</Text>
                 <Text style={styles.valorVal}>R$ {servicoInfo.preco.toFixed(2).replace('.', ',')}</Text>
               </View>
               {temMaquina && (
@@ -103,7 +127,6 @@ export default function ConfirmarPedidoScreen() {
             </View>
           </View>
 
-          {/* Pagamento */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Forma de pagamento</Text>
             <View style={styles.pagOpts}>
@@ -129,9 +152,14 @@ export default function ConfirmarPedidoScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.btn} onPress={solicitar} activeOpacity={0.85}>
-            <Text style={styles.btnTxt}>Solicitar agora</Text>
-            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          <TouchableOpacity style={styles.btn} onPress={solicitar} activeOpacity={0.85} disabled={loading}>
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <>
+                  <Text style={styles.btnTxt}>Solicitar agora</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#fff" />
+                </>
+            }
           </TouchableOpacity>
         </View>
 

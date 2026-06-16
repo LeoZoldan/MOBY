@@ -3,22 +3,50 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { getMe, logout, minhasCorridas } from '../services/api';
 
 const TROFEUS = [
-  { id: 'iniciante',    nome: 'Iniciante',   desc: 'Primeiras 5 corridas',        icon: 'star',            cor: '#F5A623', bg: '#FFF8E6', border: '#F5A623', desbloqueado: true  },
-  { id: 'veloz',        nome: 'Veloz',        desc: '10 entregas sem atraso',      icon: 'flash',           cor: '#4A9EFF', bg: '#E8F4FF', border: '#4A9EFF', desbloqueado: true  },
-  { id: 'preciso',      nome: 'Preciso',      desc: '20 entregas sem cancelar',    icon: 'checkmark-circle',cor: '#3B6D11', bg: '#EAF3DE', border: '#3B6D11', desbloqueado: true  },
-  { id: 'top',          nome: 'Top Motoboy',  desc: 'Média 4.8+ com 50 corridas', icon: 'trophy',          cor: '#F5A623', bg: '#FFF8E6', border: '#F5A623', desbloqueado: false },
-  { id: 'comunicativo', nome: 'Comunicativo', desc: '30 feedbacks no chat',        icon: 'chatbubbles',     cor: '#4A9EFF', bg: '#E8F4FF', border: '#4A9EFF', desbloqueado: false },
-  { id: 'lenda',        nome: 'Lenda',        desc: 'Média 4.9+ com 100 corridas',icon: 'ribbon',          cor: '#F5A623', bg: '#FFF8E6', border: '#F5A623', desbloqueado: false },
-  { id: 'pioneiro',     nome: 'Pioneiro',     desc: 'Um dos primeiros motoboys',   icon: 'shield-checkmark',cor: '#9B59B6', bg: '#F3E8FF', border: '#9B59B6', desbloqueado: false },
-  { id: 'favorito',     nome: 'Favorito',     desc: 'Cliente pediu 3x seguidas',  icon: 'heart',           cor: '#E24B4A', bg: '#FFE8EE', border: '#E24B4A', desbloqueado: false },
-  { id: 'maratonista',  nome: 'Maratonista',  desc: '50 corridas em um mês',      icon: 'flame',           cor: '#FF6500', bg: '#FFF3E8', border: '#FF6500', desbloqueado: false },
+  { id: 'iniciante',    nome: 'Iniciante',   desc: 'Primeiras 5 corridas',        icon: 'star',            cor: '#F5A623', bg: '#FFF8E6', border: '#F5A623', minCorridas: 5   },
+  { id: 'veloz',        nome: 'Veloz',        desc: '10 entregas sem atraso',      icon: 'flash',           cor: '#4A9EFF', bg: '#E8F4FF', border: '#4A9EFF', minCorridas: 10  },
+  { id: 'preciso',      nome: 'Preciso',      desc: '20 entregas sem cancelar',    icon: 'checkmark-circle',cor: '#3B6D11', bg: '#EAF3DE', border: '#3B6D11', minCorridas: 20  },
+  { id: 'top',          nome: 'Top Motoboy',  desc: 'Média 4.8+ com 50 corridas', icon: 'trophy',          cor: '#F5A623', bg: '#FFF8E6', border: '#F5A623', minCorridas: 50  },
+  { id: 'comunicativo', nome: 'Comunicativo', desc: '30 feedbacks no chat',        icon: 'chatbubbles',     cor: '#4A9EFF', bg: '#E8F4FF', border: '#4A9EFF', minCorridas: 30  },
+  { id: 'lenda',        nome: 'Lenda',        desc: 'Média 4.9+ com 100 corridas',icon: 'ribbon',          cor: '#F5A623', bg: '#FFF8E6', border: '#F5A623', minCorridas: 100 },
+  { id: 'pioneiro',     nome: 'Pioneiro',     desc: 'Um dos primeiros motoboys',   icon: 'shield-checkmark',cor: '#9B59B6', bg: '#F3E8FF', border: '#9B59B6', minCorridas: 1   },
+  { id: 'favorito',     nome: 'Favorito',     desc: 'Cliente pediu 3x seguidas',  icon: 'heart',           cor: '#E24B4A', bg: '#FFE8EE', border: '#E24B4A', minCorridas: 3   },
+  { id: 'maratonista',  nome: 'Maratonista',  desc: '50 corridas em um mês',      icon: 'flame',           cor: '#FF6500', bg: '#FFF3E8', border: '#FF6500', minCorridas: 50  },
 ];
 
 export default function PerfilMotoboyScreen() {
-  const desbloqueados = TROFEUS.filter(t => t.desbloqueado).length;
+  const [usuario, setUsuario] = useState<any>(null);
+  const [corridas, setCorridas] = useState<any[]>([]);
+  const [saldo, setSaldo] = useState(0);
+
+  useEffect(() => {
+    getMe().then(setUsuario);
+    minhasCorridas().then((data) => {
+      if (Array.isArray(data)) {
+        const entregues = data.filter((c: any) => c.status === 'entregue');
+        setCorridas(entregues);
+        const total = entregues.reduce((acc: number, c: any) => acc + (c.valor || 0), 0);
+        setSaldo(total);
+      }
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/' as any);
+  };
+
+  const trofeus = TROFEUS.map(t => ({
+    ...t,
+    desbloqueado: corridas.length >= t.minCorridas,
+  }));
+
+  const desbloqueados = trofeus.filter(t => t.desbloqueado).length;
 
   return (
     <>
@@ -38,11 +66,11 @@ export default function PerfilMotoboyScreen() {
                 <Ionicons name="star" size={10} color="#fff" />
               </View>
             </View>
-            <Text style={styles.nome}>Carlos Motoboy</Text>
+            <Text style={styles.nome}>{usuario?.nome || 'Carregando...'}</Text>
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={12} color="#F5A623" />
-              <Text style={styles.ratingTxt}>4.9</Text>
-              <Text style={styles.sub}>· Motoboy desde Jan 2025</Text>
+              <Text style={styles.ratingTxt}>5.0</Text>
+              <Text style={styles.sub}>· Motoboy MOBY</Text>
             </View>
           </View>
         </SafeAreaView>
@@ -50,20 +78,20 @@ export default function PerfilMotoboyScreen() {
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
 
           <View style={styles.stats}>
-            <View style={styles.stat}><Text style={[styles.statVal, { color: '#3B6D11' }]}>R$ 320</Text><Text style={styles.statLabel}>Saldo</Text></View>
+            <View style={styles.stat}><Text style={[styles.statVal, { color: '#3B6D11' }]}>R$ {saldo.toFixed(0)}</Text><Text style={styles.statLabel}>Saldo</Text></View>
             <View style={styles.statDivider} />
-            <View style={styles.stat}><Text style={styles.statVal}>87</Text><Text style={styles.statLabel}>Corridas</Text></View>
+            <View style={styles.stat}><Text style={styles.statVal}>{corridas.length}</Text><Text style={styles.statLabel}>Corridas</Text></View>
             <View style={styles.statDivider} />
-            <View style={styles.stat}><Text style={styles.statVal}>4.9</Text><Text style={styles.statLabel}>Avaliação</Text></View>
+            <View style={styles.stat}><Text style={styles.statVal}>5.0</Text><Text style={styles.statLabel}>Avaliação</Text></View>
           </View>
 
           <View style={styles.card}>
             <View style={styles.conquistaHeader}>
               <Text style={styles.cardTitle}>Conquistas</Text>
-              <Text style={styles.conquistaCount}>{desbloqueados} de {TROFEUS.length}</Text>
+              <Text style={styles.conquistaCount}>{desbloqueados} de {trofeus.length}</Text>
             </View>
             <View style={styles.grid}>
-              {TROFEUS.map((t) => (
+              {trofeus.map((t) => (
                 <View key={t.id} style={styles.trofeuWrap}>
                   <View style={[styles.trofeuCircle, t.desbloqueado ? { backgroundColor: t.bg, borderColor: t.border } : styles.trofeuCircleOff]}>
                     <Ionicons name={t.icon as any} size={26} color={t.desbloqueado ? t.cor : '#CCC'} />
@@ -75,20 +103,21 @@ export default function PerfilMotoboyScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Veículo</Text>
-            <View style={styles.row}><View style={styles.rowIcon}><MaterialCommunityIcons name="moped" size={18} color="#555" /></View><View style={styles.rowInfo}><Text style={styles.rowLabel}>Moto</Text><Text style={styles.rowVal}>Honda CG 160 · Vermelha</Text></View></View>
+            <Text style={styles.cardTitle}>Dados pessoais</Text>
+            <View style={styles.row}><View style={styles.rowIcon}><Ionicons name="person-outline" size={16} color="#555" /></View><View style={styles.rowInfo}><Text style={styles.rowLabel}>Nome</Text><Text style={styles.rowVal}>{usuario?.nome || '-'}</Text></View></View>
             <View style={styles.divider} />
-            <View style={styles.row}><View style={styles.rowIcon}><Ionicons name="card-outline" size={16} color="#555" /></View><View style={styles.rowInfo}><Text style={styles.rowLabel}>Placa</Text><Text style={styles.rowVal}>ABC-1234</Text></View></View>
+            <View style={styles.row}><View style={styles.rowIcon}><Ionicons name="mail-outline" size={16} color="#555" /></View><View style={styles.rowInfo}><Text style={styles.rowLabel}>Email</Text><Text style={styles.rowVal}>{usuario?.email || '-'}</Text></View></View>
+            <View style={styles.divider} />
+            <View style={styles.row}><View style={styles.rowIcon}><Ionicons name="phone-portrait-outline" size={16} color="#555" /></View><View style={styles.rowInfo}><Text style={styles.rowLabel}>Telefone</Text><Text style={styles.rowVal}>{usuario?.telefone || '-'}</Text></View></View>
           </View>
 
-          {/* Botão Sacar */}
           <TouchableOpacity
             style={styles.btnSaque}
             onPress={() => router.push('/saque' as any)}
             activeOpacity={0.85}
           >
             <Ionicons name="arrow-up-circle-outline" size={18} color="#fff" />
-            <Text style={styles.btnSaqueTxt}>Sacar saldo — R$ 320,00</Text>
+            <Text style={styles.btnSaqueTxt}>Sacar saldo — R$ {saldo.toFixed(2).replace('.', ',')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnEdit} onPress={() => router.push('/editar-perfil-motoboy' as any)} activeOpacity={0.8}>
@@ -96,7 +125,7 @@ export default function PerfilMotoboyScreen() {
             <Text style={styles.btnEditTxt}>Editar perfil</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.btnLogout} onPress={() => router.replace('/' as any)} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.btnLogout} onPress={handleLogout} activeOpacity={0.8}>
             <Ionicons name="log-out-outline" size={16} color="#E24B4A" />
             <Text style={styles.btnLogoutTxt}>Sair da conta</Text>
           </TouchableOpacity>
