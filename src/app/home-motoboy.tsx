@@ -3,9 +3,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { listarDisponiveis, aceitarPedido, getMe } from '../services/api';
+import { registrarNotificacoes, notificarLocal, configurarNotificacoes } from '../services/notifications';
 
 const { height } = Dimensions.get('window');
 
@@ -14,9 +15,12 @@ export default function HomeMotoboyScreen() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
+  const pedidosAnteriores = useRef<string[]>([]);
 
   useEffect(() => {
+    configurarNotificacoes();
     getMe().then(setUsuario);
+    registrarNotificacoes();
   }, []);
 
   useEffect(() => {
@@ -30,7 +34,23 @@ export default function HomeMotoboyScreen() {
   const buscarPedidos = async () => {
     try {
       const data = await listarDisponiveis();
-      if (Array.isArray(data)) setPedidos(data);
+      if (Array.isArray(data)) {
+        // Verifica se chegou pedido novo
+        const idsNovos = data.map((p: any) => p.id);
+        const idsAntigos = pedidosAnteriores.current;
+        const novos = idsNovos.filter((id: string) => !idsAntigos.includes(id));
+
+        if (novos.length > 0 && idsAntigos.length > 0) {
+          await notificarLocal(
+            '🛵 Nova corrida disponível!',
+            `R$ ${data[0]?.valor?.toFixed(2)} — ${data[0]?.origem}`,
+            { pedidoId: data[0]?.id }
+          );
+        }
+
+        pedidosAnteriores.current = idsNovos;
+        setPedidos(data);
+      }
     } catch (err) {
       console.log('Erro ao buscar pedidos:', err);
     }
