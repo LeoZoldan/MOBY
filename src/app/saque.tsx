@@ -1,27 +1,78 @@
 import {
-  StyleSheet, Text, View, TouchableOpacity, StatusBar, TextInput, KeyboardAvoidingView, Platform,
+  StyleSheet, Text, View, TouchableOpacity, StatusBar, TextInput, 
+  KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { getMe, minhasCorridas } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const BASE_URL = 'http://192.168.5.102:3000';
 const CHIPS = ['50', '100', '200', 'Tudo'];
-const SALDO = 320;
 
 export default function SaqueScreen() {
   const [valor, setValor] = useState('');
+  const [saldo, setSaldo] = useState(0);
+  const [chavePix, setChavePix] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const carregarDados = async () => {
+    try {
+      const me = await getMe();
+      const corridas = await minhasCorridas();
+
+      if (Array.isArray(corridas)) {
+        const entregues = corridas.filter((c: any) => c.status === 'entregue');
+        const total = entregues.reduce((acc: number, c: any) => acc + (c.valor || 0), 0);
+        setSaldo(total);
+      }
+
+      // Busca chave pix do motoboy
+      const token = await AsyncStorage.getItem('token');
+      const res = await fetch(`${BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data) setChavePix(data.documento || 'Não cadastrada');
+    } catch (err) {
+      console.log('Erro ao carregar dados:', err);
+    }
+  };
 
   const aplicarChip = (chip: string) => {
-    if (chip === 'Tudo') setValor(SALDO.toFixed(2).replace('.', ','));
+    if (chip === 'Tudo') setValor(saldo.toFixed(2).replace('.', ','));
     else setValor(parseFloat(chip).toFixed(2).replace('.', ','));
   };
 
   const valorNumerico = parseFloat(valor.replace(',', '.')) || 0;
 
-  const sacar = () => {
-    // TODO: chamar API de saque
-    router.back();
+  const sacar = async () => {
+    if (valorNumerico <= 0) return;
+    if (valorNumerico > saldo) {
+      Alert.alert('Erro', 'Valor maior que o saldo disponível');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Por enquanto registra o saque localmente
+      // Futuramente integrar com API PIX real
+      Alert.alert(
+        'Saque solicitado!',
+        `R$ ${valor} será transferido para sua chave PIX em até 30 minutos.`,
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível processar o saque');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,7 +89,7 @@ export default function SaqueScreen() {
               </TouchableOpacity>
               <View style={styles.saldoBox}>
                 <Text style={styles.saldoLabel}>Saldo disponível</Text>
-                <Text style={styles.saldoVal}>R$ {SALDO.toFixed(2).replace('.', ',')}</Text>
+                <Text style={styles.saldoVal}>R$ {saldo.toFixed(2).replace('.', ',')}</Text>
                 <Text style={styles.saldoSub}>Atualizado agora</Text>
               </View>
             </View>
@@ -63,11 +114,11 @@ export default function SaqueScreen() {
                 {CHIPS.map((chip) => (
                   <TouchableOpacity
                     key={chip}
-                    style={[styles.chip, valor === (chip === 'Tudo' ? SALDO.toFixed(2).replace('.', ',') : parseFloat(chip).toFixed(2).replace('.', ',')) && styles.chipActive]}
+                    style={[styles.chip, valor === (chip === 'Tudo' ? saldo.toFixed(2).replace('.', ',') : parseFloat(chip).toFixed(2).replace('.', ',')) && styles.chipActive]}
                     onPress={() => aplicarChip(chip)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.chipTxt, valor === (chip === 'Tudo' ? SALDO.toFixed(2).replace('.', ',') : parseFloat(chip).toFixed(2).replace('.', ',')) && styles.chipTxtActive]}>
+                    <Text style={[styles.chipTxt, valor === (chip === 'Tudo' ? saldo.toFixed(2).replace('.', ',') : parseFloat(chip).toFixed(2).replace('.', ',')) && styles.chipTxtActive]}>
                       {chip === 'Tudo' ? 'Tudo' : `R$ ${chip}`}
                     </Text>
                   </TouchableOpacity>
@@ -82,8 +133,8 @@ export default function SaqueScreen() {
                   <Ionicons name="wallet-outline" size={18} color="#3B6D11" />
                 </View>
                 <View style={styles.pixInfo}>
-                  <Text style={styles.pixLabel}>CPF cadastrado</Text>
-                  <Text style={styles.pixVal}>000.000.000-00</Text>
+                  <Text style={styles.pixLabel}>Chave cadastrada</Text>
+                  <Text style={styles.pixVal}>{chavePix}</Text>
                 </View>
                 <Ionicons name="checkmark-circle" size={20} color="#3B6D11" />
               </View>
@@ -100,15 +151,20 @@ export default function SaqueScreen() {
 
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.btnSacar, valorNumerico <= 0 && styles.btnSacarDisabled]}
+              style={[styles.btnSacar, (valorNumerico <= 0 || loading) && styles.btnSacarDisabled]}
               onPress={sacar}
               activeOpacity={0.85}
-              disabled={valorNumerico <= 0}
+              disabled={valorNumerico <= 0 || loading}
             >
-              <Ionicons name="arrow-forward-outline" size={18} color="#fff" />
-              <Text style={styles.btnSacarTxt}>
-                {valorNumerico > 0 ? `Sacar R$ ${valor}` : 'Sacar'}
-              </Text>
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <>
+                    <Ionicons name="arrow-forward-outline" size={18} color="#fff" />
+                    <Text style={styles.btnSacarTxt}>
+                      {valorNumerico > 0 ? `Sacar R$ ${valor}` : 'Sacar'}
+                    </Text>
+                  </>
+              }
             </TouchableOpacity>
           </View>
 
@@ -120,10 +176,7 @@ export default function SaqueScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F8F8' },
-  header: {
-    backgroundColor: '#0D0D0D', paddingHorizontal: 20,
-    paddingTop: 10, paddingBottom: 28, gap: 16,
-  },
+  header: { backgroundColor: '#0D0D0D', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 28, gap: 16 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   backTxt: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
   saldoBox: { alignItems: 'center', gap: 4 },
@@ -133,11 +186,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: 16, gap: 12 },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#EBEBEB', gap: 12 },
   cardTitle: { fontSize: 10, fontWeight: '600', color: '#999', letterSpacing: 0.5, textTransform: 'uppercase' },
-  valorBox: {
-    backgroundColor: '#F7F7F7', borderRadius: 12, padding: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderWidth: 1.5, borderColor: '#EBEBEB',
-  },
+  valorBox: { backgroundColor: '#F7F7F7', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderColor: '#EBEBEB' },
   valorPrefix: { fontSize: 20, fontWeight: '700', color: '#BBB' },
   valorInput: { flex: 1, fontSize: 26, fontWeight: '800', color: '#111', padding: 0 },
   chips: { flexDirection: 'row', gap: 8 },
@@ -150,18 +199,11 @@ const styles = StyleSheet.create({
   pixInfo: { flex: 1 },
   pixLabel: { fontSize: 10, color: '#AAA' },
   pixVal: { fontSize: 13, fontWeight: '600', color: '#111', marginTop: 1 },
-  infoBox: {
-    backgroundColor: '#FFF8E6', borderRadius: 12, padding: 14,
-    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
-    borderWidth: 1, borderColor: '#FFE4A0',
-  },
+  infoBox: { backgroundColor: '#FFF8E6', borderRadius: 12, padding: 14, flexDirection: 'row', gap: 8, alignItems: 'flex-start', borderWidth: 1, borderColor: '#FFE4A0' },
   infoTxt: { flex: 1, fontSize: 11, color: '#7A5C00', lineHeight: 17 },
   infoBold: { fontWeight: '700' },
   footer: { padding: 16, paddingBottom: 32 },
-  btnSacar: {
-    backgroundColor: '#3B6D11', borderRadius: 16, padding: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-  },
+  btnSacar: { backgroundColor: '#3B6D11', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   btnSacarDisabled: { backgroundColor: '#CCC' },
   btnSacarTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
