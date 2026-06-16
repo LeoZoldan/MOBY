@@ -7,19 +7,19 @@ import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { criarPedido } from '../services/api';
 
-const SERVICOS: Record<string, { nome: string; desc: string; icon: string; preco: number }> = {
-  entrega:    { nome: 'Entrega Express', desc: 'Pacotes e mercadorias',     icon: 'cube-outline',          preco: 12 },
-  documentos: { nome: 'Documentos',     desc: 'Cartórios e bancos',         icon: 'document-text-outline', preco: 14 },
-  mototaxi:   { nome: 'Mototáxi',       desc: 'Transporte de passageiro',   icon: 'person-outline',        preco: 10 },
-  pecas:      { nome: 'Peças e Insumos',desc: 'Autopeças e materiais',      icon: 'construct-outline',     preco: 16 },
+const SERVICOS: Record<string, { nome: string; desc: string; icon: string }> = {
+  entrega:    { nome: 'Entrega Express', desc: 'Pacotes e mercadorias',     icon: 'cube-outline'          },
+  documentos: { nome: 'Documentos',     desc: 'Cartórios e bancos',         icon: 'document-text-outline' },
+  mototaxi:   { nome: 'Mototáxi',       desc: 'Transporte de passageiro',   icon: 'person-outline'        },
+  pecas:      { nome: 'Peças e Insumos',desc: 'Autopeças e materiais',      icon: 'construct-outline'     },
 };
 
 const TAXA_MAQUINA = 6;
 
 const PAGAMENTOS = [
-  { id: 'cartao', nome: 'Cartão de crédito', icon: 'card-outline' },
-  { id: 'pix',    nome: 'PIX',               icon: 'flash-outline' },
-  { id: 'dinheiro', nome: 'Dinheiro',        icon: 'cash-outline' },
+  { id: 'cartao',   nome: 'Cartão de crédito', icon: 'card-outline'  },
+  { id: 'pix',      nome: 'PIX',               icon: 'flash-outline' },
+  { id: 'dinheiro', nome: 'Dinheiro',           icon: 'cash-outline'  },
 ];
 
 export default function ConfirmarPedidoScreen() {
@@ -28,13 +28,15 @@ export default function ConfirmarPedidoScreen() {
   const maquina = String(params.maquina || '0');
   const origem = String(params.origem || '');
   const destino = String(params.destino || '');
+  const valorParam = params.valor ? parseFloat(String(params.valor)) : null;
 
   const [pagamento, setPagamento] = useState('cartao');
   const [loading, setLoading] = useState(false);
 
   const temMaquina = maquina === '1';
   const servicoInfo = SERVICOS[servico] ?? SERVICOS.entrega;
-  const total = servicoInfo.preco + (temMaquina ? TAXA_MAQUINA : 0);
+  const valorBase = valorParam || 11;
+  const total = temMaquina ? valorBase + TAXA_MAQUINA : valorBase;
 
   const solicitar = async () => {
     setLoading(true);
@@ -111,7 +113,7 @@ export default function ConfirmarPedidoScreen() {
             <View style={styles.valorRows}>
               <View style={styles.valorRow}>
                 <Text style={styles.valorLabel}>{servicoInfo.nome}</Text>
-                <Text style={styles.valorVal}>R$ {servicoInfo.preco.toFixed(2).replace('.', ',')}</Text>
+                <Text style={styles.valorVal}>R$ {valorBase.toFixed(2).replace('.', ',')}</Text>
               </View>
               {temMaquina && (
                 <View style={styles.valorRow}>

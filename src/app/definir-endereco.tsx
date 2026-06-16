@@ -3,20 +3,77 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 
+const BASE_URL = 'http://192.168.5.102:3000';
+
+const PRECOS_SERVICO: Record<string, number> = {
+  entrega: 11,
+  documentos: 11,
+  mototaxi: 11,
+  pecas: 11,
+};
+
+const TAXA_MAQUINA = 6;
+
 export default function DefinirEnderecoScreen() {
-  const { servico = 'entrega', maquina = '0' } = useLocalSearchParams<{ servico: string; maquina: string }>();
+  const params = useLocalSearchParams();
+  const servico = String(params.servico || 'entrega');
+  const maquina = String(params.maquina || '0');
+
   const [origem, setOrigem] = useState('');
   const [destino, setDestino] = useState('');
   const [inputAtivo, setInputAtivo] = useState<'origem' | 'destino'>('origem');
+  const [valorZona, setValorZona] = useState<number | null>(null);
+  const [intermunicipal, setIntermunicipal] = useState(false);
+  const [detectando, setDetectando] = useState(false);
+
+  useEffect(() => {
+    if (destino.length > 5) {
+      const timeout = setTimeout(() => detectarZona(), 800);
+      return () => clearTimeout(timeout);
+    } else {
+      setValorZona(null);
+      setIntermunicipal(false);
+    }
+  }, [destino]);
+
+  const detectarZona = async () => {
+    setDetectando(true);
+    try {
+      const res = await fetch(`${BASE_URL}/zonas/detectar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destino, cidadeOrigem: 'Tapejara' }),
+      });
+      const data = await res.json();
+      if (data.intermunicipal) {
+        setIntermunicipal(true);
+        setValorZona(null);
+      } else if (data.valor) {
+        setValorZona(data.valor);
+        setIntermunicipal(false);
+      } else {
+        setValorZona(PRECOS_SERVICO[servico] || 11);
+        setIntermunicipal(false);
+      }
+    } catch (err) {
+      setValorZona(PRECOS_SERVICO[servico] || 11);
+    } finally {
+      setDetectando(false);
+    }
+  };
+
+  const valorFinal = valorZona
+    ? valorZona + (maquina === '1' ? TAXA_MAQUINA : 0)
+    : PRECOS_SERVICO[servico] + (maquina === '1' ? TAXA_MAQUINA : 0);
 
   const confirmar = () => {
     if (!origem || !destino) return;
     router.push({
       pathname: '/confirmar-pedido' as any,
-      params: { servico, maquina, origem, destino },
+      params: { servico, maquina, origem, destino, valor: String(valorFinal) },
     });
   };
 
@@ -105,17 +162,26 @@ export default function DefinirEnderecoScreen() {
               <View style={styles.infoPill}>
                 <Ionicons name="location-outline" size={14} color="#555" />
                 <View>
-                  <Text style={styles.pillLabel}>Distância</Text>
-                  <Text style={styles.pillValue}>2,4 km</Text>
+                  <Text style={styles.pillLabel}>Zona</Text>
+                  <Text style={styles.pillValue}>{detectando ? '...' : intermunicipal ? 'Intermunic.' : 'Local'}</Text>
                 </View>
               </View>
               <View style={styles.infoPill}>
                 <Ionicons name="cash-outline" size={14} color="#555" />
                 <View>
                   <Text style={styles.pillLabel}>Valor est.</Text>
-                  <Text style={styles.pillValue}>R$ {maquina === '1' ? '18' : '12'}</Text>
+                  <Text style={styles.pillValue}>
+                    {detectando ? '...' : intermunicipal ? 'Por km' : `R$ ${valorFinal}`}
+                  </Text>
                 </View>
               </View>
+            </View>
+          )}
+
+          {intermunicipal && (
+            <View style={styles.alertBox}>
+              <Ionicons name="information-circle-outline" size={16} color="#C89000" />
+              <Text style={styles.alertTxt}>Destino intermunicipal — valor calculado por km (R$ 1,50/km ida e volta)</Text>
             </View>
           )}
 
@@ -162,6 +228,8 @@ const styles = StyleSheet.create({
   infoPill: { flex: 1, backgroundColor: '#F7F7F7', borderRadius: 12, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#EBEBEB' },
   pillLabel: { fontSize: 9, color: '#AAA', fontWeight: '500' },
   pillValue: { fontSize: 12, fontWeight: '700', color: '#111' },
+  alertBox: { backgroundColor: '#FFF8E6', borderRadius: 12, padding: 12, flexDirection: 'row', gap: 8, alignItems: 'flex-start', borderWidth: 1, borderColor: '#FFE4A0' },
+  alertTxt: { flex: 1, fontSize: 11, color: '#7A5C00', lineHeight: 16 },
   confirmBtn: { backgroundColor: '#111', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   confirmBtnDisabled: { backgroundColor: '#CCC' },
   confirmTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
