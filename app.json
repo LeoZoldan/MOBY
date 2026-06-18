@@ -18,7 +18,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.lfz87.motoapp"
+      "package": "com.lfz87.motoapp",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -35,6 +39,18 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "pk.eyJ1IjoibGVvem9sZGFuIiwiYSI6ImNtcTZ3aWpqMDAxZWUycnB2N2V0NzA2c2sifQ.JIdw2ojpfvyPpDJrUiA91A"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permita que o MOBY acesse sua localização para mostrar corridas próximas."
+        }
       ]
     ],
     "experiments": {
@@ -45,7 +61,8 @@
       "router": {},
       "eas": {
         "projectId": "2cbdcd76-8578-4d0b-b606-8e2e16beb7f6"
-      }
+      },
+      "mapboxAccessToken": "pk.eyJ1IjoibGVvem9sZGFuIiwiYSI6ImNtcTZ3aWpqMDAxZWUycnB2N2V0NzA2c2sifQ.JIdw2ojpfvyPpDJrUiA91A"
     }
   }
 }

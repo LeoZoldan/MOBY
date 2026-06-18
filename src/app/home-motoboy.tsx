@@ -5,8 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
+import * as Location from 'expo-location';
+import Mapbox, { MapView, Camera, PointAnnotation } from '@rnmapbox/maps';
 import { listarDisponiveis, aceitarPedido, getMe } from '../services/api';
 import { registrarNotificacoes, notificarLocal, configurarNotificacoes } from '../services/notifications';
+
+Mapbox.setAccessToken('pk.eyJ1IjoibGVvem9sZGFuIiwiYSI6ImNtcTZ3aWpqMDAxZWUycnB2N2V0NzA2c2sifQ.JIdw2ojpfvyPpDJrUiA91A');
 
 const { height } = Dimensions.get('window');
 
@@ -15,13 +19,31 @@ export default function HomeMotoboyScreen() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
+  const [localizacao, setLocalizacao] = useState<{ latitude: number; longitude: number } | null>(null);
   const pedidosAnteriores = useRef<string[]>([]);
+  const cameraRef = useRef<Camera>(null);
 
   useEffect(() => {
     configurarNotificacoes();
     getMe().then(setUsuario);
     registrarNotificacoes();
+    obterLocalizacao();
   }, []);
+
+  const obterLocalizacao = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      const loc = await Location.getCurrentPositionAsync({});
+      setLocalizacao({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+    } catch (err) {
+      console.log('Erro ao obter localização:', err);
+    }
+  };
 
   useEffect(() => {
     if (online) {
@@ -35,7 +57,6 @@ export default function HomeMotoboyScreen() {
     try {
       const data = await listarDisponiveis();
       if (Array.isArray(data)) {
-        // Verifica se chegou pedido novo
         const idsNovos = data.map((p: any) => p.id);
         const idsAntigos = pedidosAnteriores.current;
         const novos = idsNovos.filter((id: string) => !idsAntigos.includes(id));
@@ -100,10 +121,30 @@ export default function HomeMotoboyScreen() {
         </SafeAreaView>
 
         <View style={styles.mapContainer}>
-          <View style={[styles.map, { backgroundColor: '#E8E8E4', alignItems: 'center', justifyContent: 'center' }]}>
-            <Ionicons name="map-outline" size={32} color="#CCC" />
-            <Text style={{ color: '#CCC', fontSize: 12, marginTop: 6 }}>Mapa disponível no celular</Text>
-          </View>
+          {localizacao ? (
+            <MapView style={styles.map} styleURL="mapbox://styles/mapbox/streets-v12">
+              <Camera
+                ref={cameraRef}
+                zoomLevel={14}
+                centerCoordinate={[localizacao.longitude, localizacao.latitude]}
+                animationMode="flyTo"
+                animationDuration={1000}
+              />
+              <PointAnnotation
+                id="minha-localizacao"
+                coordinate={[localizacao.longitude, localizacao.latitude]}
+              >
+                <View style={styles.pinMotoboy}>
+                  <Ionicons name="bicycle" size={16} color="#fff" />
+                </View>
+              </PointAnnotation>
+            </MapView>
+          ) : (
+            <View style={[styles.map, { backgroundColor: '#E8E8E4', alignItems: 'center', justifyContent: 'center' }]}>
+              <ActivityIndicator color="#999" />
+              <Text style={{ color: '#CCC', fontSize: 12, marginTop: 6 }}>Carregando mapa...</Text>
+            </View>
+          )}
           <View style={styles.earningsStrip}>
             <View style={styles.earnItem}>
               <Text style={styles.earnLabel}>Disponíveis</Text>
@@ -214,6 +255,11 @@ const styles = StyleSheet.create({
   toggleDotOn: { alignSelf: 'flex-end' },
   mapContainer: { flex: 1, position: 'relative' },
   map: { ...StyleSheet.absoluteFillObject },
+  pinMotoboy: {
+    width: 32, height: 32, borderRadius: 99, backgroundColor: '#3B6D11',
+    borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4,
+  },
   earningsStrip: {
     position: 'absolute', top: 12, left: 12, right: 12,
     backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14,
