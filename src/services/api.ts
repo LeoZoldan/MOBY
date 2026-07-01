@@ -100,3 +100,11 @@ export const atualizarStatus = async (id: string, status: string) => {
   });
   return res.json();
 };
+export const atualizarPerfil = async (dados: any) => {
+  const res = await fetch(`${BASE_URL}/auth/atualizar`, {
+    method: 'PATCH',
+    headers: await headers(),
+    body: JSON.stringify(dados),
+  });
+  return res.json();
+};

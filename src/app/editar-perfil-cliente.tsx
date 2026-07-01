@@ -6,10 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { getMe } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const BASE_URL = 'http://192.168.5.102:3000';
+import { getMe, atualizarPerfil } from '../services/api';
 
 export default function EditarPerfilClienteScreen() {
   const [nome, setNome] = useState('');
@@ -32,20 +29,10 @@ export default function EditarPerfilClienteScreen() {
   const salvar = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
       const body: any = { nome, telefone, email };
       if (senha) body.senha = senha;
 
-      const res = await fetch(`${BASE_URL}/auth/atualizar`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json();
+      const data = await atualizarPerfil(body);
       if (data.erro) {
         Alert.alert('Erro', data.erro);
         return;
