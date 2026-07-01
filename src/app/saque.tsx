@@ -7,9 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { getMe, minhasCorridas } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.5.102:3000';
 const CHIPS = ['50', '100', '200', 'Tudo'];
 
 export default function SaqueScreen() {
@@ -25,21 +23,14 @@ export default function SaqueScreen() {
   const carregarDados = async () => {
     try {
       const me = await getMe();
-      const corridas = await minhasCorridas();
+      if (me) setChavePix(me.documento || 'Não cadastrada');
 
+      const corridas = await minhasCorridas();
       if (Array.isArray(corridas)) {
         const entregues = corridas.filter((c: any) => c.status === 'entregue');
         const total = entregues.reduce((acc: number, c: any) => acc + (c.valor || 0), 0);
         setSaldo(total);
       }
-
-      // Busca chave pix do motoboy
-      const token = await AsyncStorage.getItem('token');
-      const res = await fetch(`${BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data) setChavePix(data.documento || 'Não cadastrada');
     } catch (err) {
       console.log('Erro ao carregar dados:', err);
     }
@@ -61,8 +52,6 @@ export default function SaqueScreen() {
 
     setLoading(true);
     try {
-      // Por enquanto registra o saque localmente
-      // Futuramente integrar com API PIX real
       Alert.alert(
         'Saque solicitado!',
         `R$ ${valor} será transferido para sua chave PIX em até 30 minutos.`,

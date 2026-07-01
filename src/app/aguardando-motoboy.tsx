@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { io as socketIO } from 'socket.io-client';
 import { meusPedidos } from '../services/api';
 
-const BASE_URL = 'http://192.168.5.102:3000';
+const BASE_URL = 'https://moby-backend-production.up.railway.app';
 
 export default function AguardandoMotoboyScreen() {
   const socketRef = useRef<any>(null);
@@ -36,7 +36,6 @@ export default function AguardandoMotoboyScreen() {
     };
   }, [pedidoId]);
 
-  // Verifica também via polling a cada 5 segundos
   useEffect(() => {
     const interval = setInterval(async () => {
       try {

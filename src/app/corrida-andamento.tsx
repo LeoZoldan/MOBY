@@ -3,28 +3,51 @@ import {
   Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-
-const MSGS_INICIAIS = [
-  { id: 1, tipo: 'recv', texto: 'Estou a caminho! Chego em 5 minutos' },
-  { id: 2, tipo: 'sent', texto: 'Ótimo, obrigado!' },
-  { id: 3, tipo: 'recv', texto: 'Já coletei o pedido' },
-];
+import { meusPedidos } from '../services/api';
 
 const STATUS_STEPS = ['Aceito', 'Coletou', 'Entregou'];
 
 export default function CorridaAndamentoScreen() {
   const [chatAberto, setChatAberto] = useState(false);
-  const [msgs, setMsgs] = useState(MSGS_INICIAIS);
+  const [msgs, setMsgs] = useState<any[]>([]);
   const [inputMsg, setInputMsg] = useState('');
-  const [stepAtual] = useState(1);
+  const [pedido, setPedido] = useState<any>(null);
+  const [stepAtual, setStepAtual] = useState(0);
+
+  useEffect(() => {
+    buscarPedidoAtual();
+    const interval = setInterval(buscarPedidoAtual, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const buscarPedidoAtual = async () => {
+    try {
+      const data = await meusPedidos();
+      if (Array.isArray(data)) {
+        const ativo = data.find((p: any) => p.status === 'aceito' || p.status === 'coletado');
+        if (ativo) {
+          setPedido(ativo);
+          if (ativo.status === 'aceito') setStepAtual(0);
+          if (ativo.status === 'coletado') setStepAtual(1);
+          if (ativo.status === 'entregue') setStepAtual(2);
+        }
+      }
+    } catch (err) {
+      console.log('Erro ao buscar pedido:', err);
+    }
+  };
 
   const enviarMsg = () => {
     if (!inputMsg.trim()) return;
     setMsgs([...msgs, { id: msgs.length + 1, tipo: 'sent', texto: inputMsg }]);
     setInputMsg('');
   };
+
+  const nomeMotoboy = pedido?.motoboy?.usuario?.nome || 'Motoboy';
+  const placaMotoboy = pedido?.motoboy?.placa || '';
+  const modeloMotoboy = pedido?.motoboy?.modelo || '';
 
   return (
     <>
@@ -45,11 +68,11 @@ export default function CorridaAndamentoScreen() {
               <Ionicons name="person-outline" size={20} color="#999" />
             </View>
             <View style={styles.mbDados}>
-              <Text style={styles.mbNome}>Carlos Motoboy</Text>
-              <Text style={styles.mbPlaca}>ABC-1234 · Honda CG 160</Text>
+              <Text style={styles.mbNome}>{nomeMotoboy}</Text>
+              <Text style={styles.mbPlaca}>{placaMotoboy}{modeloMotoboy ? ` · ${modeloMotoboy}` : ''}</Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={12} color="#F5A623" />
-                <Text style={styles.ratingTxt}>4.9</Text>
+                <Text style={styles.ratingTxt}>5.0</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.chatIconBtn} onPress={() => setChatAberto(true)} activeOpacity={0.85}>
@@ -91,12 +114,17 @@ export default function CorridaAndamentoScreen() {
               <TouchableOpacity style={styles.chatBackdrop} onPress={() => setChatAberto(false)} />
               <View style={styles.chatModal}>
                 <View style={styles.chatHeader}>
-                  <Text style={styles.chatTitle}>Chat com Carlos</Text>
+                  <Text style={styles.chatTitle}>Chat com {nomeMotoboy}</Text>
                   <TouchableOpacity style={styles.chatClose} onPress={() => setChatAberto(false)}>
                     <Ionicons name="close" size={16} color="#555" />
                   </TouchableOpacity>
                 </View>
                 <ScrollView style={styles.chatMsgs} contentContainerStyle={{ padding: 14, gap: 8 }}>
+                  {msgs.length === 0 && (
+                    <Text style={{ textAlign: 'center', color: '#CCC', fontSize: 12, marginTop: 20 }}>
+                      Nenhuma mensagem ainda
+                    </Text>
+                  )}
                   {msgs.map((m) => (
                     <View key={m.id} style={[styles.msg, m.tipo === 'sent' ? styles.msgSent : styles.msgRecv]}>
                       <Text style={m.tipo === 'sent' ? styles.msgSentTxt : styles.msgRecvTxt}>{m.texto}</Text>
